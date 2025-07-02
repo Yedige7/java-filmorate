@@ -44,32 +44,11 @@ public class FilmController {
             throw new ConditionsNotMetException("Id должен быть указан");
         }
         if (films.containsKey(newFilm.getId())) {
-            Film oldFilm = films.get(newFilm.getId());
-            if (newFilm.getName() != null && !newFilm.getName().isBlank()) {
-                oldFilm.setName(newFilm.getName());
-            }
-
-            if (newFilm.getDescription() != null && !newFilm.getDescription().isBlank()) {
-                oldFilm.setDescription(newFilm.getDescription());
-            }
-
-            if (newFilm.getDuration() != null && !newFilm.getDuration().isNegative()) {
-                oldFilm.setDuration(newFilm.getDuration());
-            }
-
-            if (newFilm.getReleaseDate() != null) {
-                oldFilm.setReleaseDate(newFilm.getReleaseDate());
-            }
-            log.info("Фильм обновлен: {}", oldFilm);
-            return oldFilm;
+            films.put(newFilm.getId(), newFilm);
+            log.info("Фильм обновлен: {}", newFilm);
+            return newFilm;
         }
         log.warn("Id должен быть указан");
         throw new NotFoundException("Фильм с id = " + newFilm.getId() + " не найден");
-    }
-
-    @DeleteMapping("/clear")
-    public void clearAll() {
-        films.clear();
-        log.trace("Все фильмы удалены");
     }
 }

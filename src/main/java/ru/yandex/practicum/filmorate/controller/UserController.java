@@ -9,7 +9,6 @@ import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,39 +48,17 @@ public class UserController {
     }
 
     @PutMapping
-    public User update(@RequestBody User newUser) {
+    public User update(@RequestBody @Valid  User newUser) {
         if (newUser.getId() == null) {
             log.trace("Id должен быть указан ");
             throw new ConditionsNotMetException("Id должен быть указан");
         }
         if (users.containsKey(newUser.getId())) {
-            User oldUser = users.get(newUser.getId());
-            if (newUser.getEmail() != null && !newUser.getEmail().isBlank()) {
-                oldUser.setEmail(newUser.getEmail());
-            }
-
-            if (newUser.getName() != null && !newUser.getName().isBlank()) {
-                oldUser.setName(newUser.getName());
-            }
-
-            if (newUser.getLogin() != null && !newUser.getLogin().isBlank()) {
-                oldUser.setLogin(newUser.getLogin());
-            }
-
-            if (newUser.getBirthday() != null && !newUser.getBirthday().isAfter(LocalDate.now())) {
-                oldUser.setBirthday(newUser.getBirthday());
-            }
-            log.info("Пользователь обновлен: {}", oldUser);
-            return oldUser;
+            users.put(newUser.getId(), newUser);
+            log.info("Пользователь обновлен: {}", newUser);
+            return newUser;
         }
         log.warn("Пользователь с id = " + newUser.getId() + " не найден");
         throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
     }
-
-    @DeleteMapping("/clear")
-    public void clearAll() {
-        users.clear();
-        log.trace("Все пользователи удалены");
-    }
-
 }
