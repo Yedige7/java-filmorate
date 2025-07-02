@@ -27,7 +27,8 @@ class FilmControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper; // Jackson с модулями для Duration и LocalDate
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void setup() throws Exception {
         objectMapper = new ObjectMapper();
@@ -68,7 +69,7 @@ class FilmControllerTest {
 
     @Test
     void shouldUpdateFilmSuccessfully() throws Exception {
-        // Сначала создаём фильм
+
         Film film = new Film(
                 null,
                 "С легким паром",
@@ -85,7 +86,7 @@ class FilmControllerTest {
 
         Film createdFilm = objectMapper.readValue(response, Film.class);
 
-        // Обновляем
+
         Film updated = new Film(
                 createdFilm.getId(),
                 "Крик",

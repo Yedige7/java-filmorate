@@ -28,7 +28,8 @@ public class UserControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper; // Jackson с модулями для Duration и LocalDate
+    private ObjectMapper objectMapper;
+
     @BeforeEach
     void setup() throws Exception {
         objectMapper = new ObjectMapper();
@@ -71,14 +72,11 @@ public class UserControllerTest {
                         .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isOk());
 
-
-        // Повтор с тем же email — ошибка 500, если нет GlobalExceptionHandler
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isBadRequest());
     }
-
 
     @Test
     void shouldUpdateUser() throws Exception {
