@@ -13,6 +13,8 @@ import ru.yandex.practicum.filmorate.util.DurationToMinutesSerializer;
 
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Film.
@@ -39,5 +41,8 @@ public class Film {
     @NotBefore
     @NotNull
     private LocalDate releaseDate;
+
+    @NotNull
+    private Set<Long> likes = new HashSet<>();
 
 }
