@@ -12,11 +12,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -31,7 +31,7 @@ public class UserControllerTest {
 
     @Test
     void shouldCreateUserSuccessfully() throws Exception {
-        User user = new User(null, "user@example.com", "userLogin", "Имя", LocalDate.of(1990, 1, 1));
+        User user = new User(null, "user@example.com", "userLogin", "Имя", LocalDate.of(1990, 1, 1), new HashSet<>());
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -44,7 +44,7 @@ public class UserControllerTest {
 
     @Test
     void shouldDefaultNameToLoginIfNameIsBlank() throws Exception {
-        User user = new User(null, "auto@name.com", "autologin", "", LocalDate.of(1990, 1, 1));
+        User user = new User(null, "auto@name.com", "autologin", "", LocalDate.of(1990, 1, 1), new HashSet<>());
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -55,7 +55,7 @@ public class UserControllerTest {
 
     @Test
     void shouldReturn500OnDuplicateEmailIfNoHandler() throws Exception {
-        User user = new User(null, "user@example.com", "userLogin", "Имя", LocalDate.of(1990, 1, 1));
+        User user = new User(null, "user@example.com", "userLogin", "Имя", LocalDate.of(1990, 1, 1), new HashSet<>());
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -70,7 +70,7 @@ public class UserControllerTest {
 
     @Test
     void shouldUpdateUser() throws Exception {
-        User user = new User(null, "update@example.com", "updLogin", "Old Name", LocalDate.of(1985, 5, 5));
+        User user = new User(null, "update@example.com", "updLogin", "Old Name", LocalDate.of(1985, 5, 5), new HashSet<>());
 
         String response = mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -90,8 +90,8 @@ public class UserControllerTest {
 
     @Test
     void shouldReturnAllUsers() throws Exception {
-        User u1 = new User(null, "user1@example.com", "login1", "User1", LocalDate.of(1990, 1, 1));
-        User u2 = new User(null, "user2@example.com", "login2", "User2", LocalDate.of(1992, 2, 2));
+        User u1 = new User(null, "user1@example.com", "login1", "User1", LocalDate.of(1990, 1, 1), new HashSet<>());
+        User u2 = new User(null, "user2@example.com", "login2", "User2", LocalDate.of(1992, 2, 2), new HashSet<>());
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -106,5 +106,42 @@ public class UserControllerTest {
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2))); // может быть больше, если другие тесты создают
+    }
+
+    @Test
+    void testUserFriendsAddGetDelete() throws Exception {
+        User u1 = new User(null, "user1@example.com", "login1", "User1", LocalDate.of(1990, 1, 1), new HashSet<>());
+        User u2 = new User(null, "user2@example.com", "login2", "User2", LocalDate.of(1992, 2, 2), new HashSet<>());
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(u1)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(u2)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(2));
+
+        // PUT /users/{id}/friends/{friendId}
+        mockMvc.perform(put("/users/1/friends/2"))
+                .andExpect(status().isOk());
+
+        // GET /users/{id}/friends
+        mockMvc.perform(get("/users/1/friends"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].login").value("login2"));
+
+
+        // DELETE /users/{id}/friends/{friendId}
+        mockMvc.perform(delete("/users/1/friends/2"))
+                .andExpect(status().isOk());
+
+        // Проверяем, что друзей нет
+        mockMvc.perform(get("/users/1/friends"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
     }
 }

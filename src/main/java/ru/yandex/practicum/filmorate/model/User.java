@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.anotation.NoSpaces;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @EqualsAndHashCode(of = {"email"})
@@ -34,5 +36,6 @@ public class User {
     @PastOrPresent
     private LocalDate birthday;
 
+    private Set<Long> friends = new HashSet<>();
 }
 

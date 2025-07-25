@@ -1,67 +1,59 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ConditionsNotMetException;
-import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+
 import lombok.extern.slf4j.Slf4j;
+import ru.yandex.practicum.filmorate.service.UserService;
 
 @Slf4j
 @RestController
 @RequestMapping("/users")
 public class UserController {
 
-    private final Map<Long, User> users = new HashMap<>();
+    private final UserService userService;
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public Collection<User> findAll() {
-        return users.values();
-    }
-
-    private long getNextId() {
-        long currentMaxId = users.keySet().stream().mapToLong(id -> id).max().orElse(0);
-        return ++currentMaxId;
+        return userService.findAll();
     }
 
     @PostMapping
     public User create(@RequestBody @Valid User user) {
-        boolean isUsed = users.entrySet().stream().anyMatch(entry -> entry.getValue().getEmail().equals(user.getEmail()));
-        if (isUsed) {
-            log.warn("Этот имейл уже используется " + user.getEmail());
-            throw new DuplicatedDataException("Этот имейл уже используется");
-        }
-
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-        user.setId(getNextId());
-        users.put(user.getId(), user);
-        log.info("Пользователь создан: {}", user);
-        return user;
+        return userService.create(user);
     }
 
     @PutMapping
-    public User update(@RequestBody @Valid  User newUser) {
-        if (newUser.getId() == null) {
-            log.trace("Id должен быть указан ");
-            throw new ConditionsNotMetException("Id должен быть указан");
-        }
-        if (newUser.getName() == null || newUser.getName().isBlank()) {
-            log.trace("Имени нет поставили логин");
-            newUser.setName(newUser.getLogin());
-        }
-        if (users.containsKey(newUser.getId())) {
-            users.put(newUser.getId(), newUser);
-            log.info("Пользователь обновлен: {}", newUser);
-            return newUser;
-        }
-        log.warn("Пользователь с id = " + newUser.getId() + " не найден");
-        throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
+    public User update(@RequestBody @Valid User newUser) {
+        return userService.update(newUser);
+    }
+
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public Collection<User> getFriends(@PathVariable Long id) {
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public Collection<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        return userService.getCommonFriends(id, otherId);
     }
 }
