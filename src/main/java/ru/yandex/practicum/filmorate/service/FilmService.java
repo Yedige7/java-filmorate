@@ -4,9 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.List;
@@ -15,12 +13,12 @@ import java.util.stream.Collectors;
 @Service
 public class FilmService {
     private final FilmStorage filmStorage;
-    private final UserStorage userStorage;
+    private final UserService userService;
 
     @Autowired
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
+    public FilmService(FilmStorage filmStorage, UserService userService) {
         this.filmStorage = filmStorage;
-        this.userStorage = userStorage;
+        this.userService = userService;
     }
 
     public Film create(Film film) {
@@ -37,13 +35,13 @@ public class FilmService {
 
     public void addLike(Long filmId, Long userId) {
         Film film = getFilmOrThrow(filmId);
-        getUserOrThrow(userId);
+        userService.getUserOrThrow(userId);
         film.getLikes().add(userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
         Film film = getFilmOrThrow(filmId);
-        getUserOrThrow(userId);
+        userService.getUserOrThrow(userId);
         film.getLikes().remove(userId);
     }
 
@@ -57,10 +55,5 @@ public class FilmService {
     private Film getFilmOrThrow(Long id) {
         return filmStorage.findById(id).orElseThrow(() ->
                 new NotFoundException("Фильм c " + id + " не найден"));
-    }
-
-    private User getUserOrThrow(Long id) {
-        return userStorage.findById(id).orElseThrow(() ->
-                new NotFoundException("Пользователь c " + id + " не найден"));
     }
 }

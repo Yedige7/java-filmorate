@@ -16,33 +16,26 @@ import java.util.Map;
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler
+    @ExceptionHandler({
+            DuplicatedDataException.class,
+            ValidationException.class,
+            ConditionsNotMetException.class
+    })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleIncorrectParameter(final ConditionsNotMetException e) {
-        return Map.of("error", e.getMessage());
+    public Map<String, String> handleCustomExceptions(RuntimeException ex) {
+        return Map.of("error", ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
+    public Map<String, Object> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getFieldErrors()
-                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
-        return errors;
-    }
-
-    @ExceptionHandler(DuplicatedDataException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationErrors(DuplicatedDataException ex) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put("errors", ex.getMessage());
-        return errors;
-    }
-
-    @ExceptionHandler(ValidationException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleCustomValidation(ValidationException ex) {
-        return Map.of("error", ex.getMessage());
+                .forEach(error -> fieldErrors.put(error.getField(), error.getDefaultMessage()));
+        return Map.of(
+                "error", "Validation failed",
+                "details", fieldErrors
+        );
     }
 
     @ExceptionHandler

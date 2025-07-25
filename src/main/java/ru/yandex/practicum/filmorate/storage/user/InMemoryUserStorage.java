@@ -33,7 +33,7 @@ public class InMemoryUserStorage implements UserStorage {
     public User create(User user) {
         boolean isUsed = users.entrySet().stream().anyMatch(entry -> entry.getValue().getEmail().equals(user.getEmail()));
         if (isUsed) {
-            log.warn("Этот имейл уже используется " + user.getEmail());
+            log.info("Этот имейл уже используется " + user.getEmail());
             throw new DuplicatedDataException("Этот имейл уже используется");
         }
 
@@ -49,11 +49,11 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public User update(User newUser) {
         if (newUser.getId() == null) {
-            log.trace("Id должен быть указан ");
+            log.info("Id должен быть указан ");
             throw new ConditionsNotMetException("Id должен быть указан");
         }
         if (newUser.getName() == null || newUser.getName().isBlank()) {
-            log.trace("Имени нет поставили логин");
+            log.info("Имени нет поставили логин");
             newUser.setName(newUser.getLogin());
         }
         if (users.containsKey(newUser.getId())) {
@@ -61,7 +61,7 @@ public class InMemoryUserStorage implements UserStorage {
             log.info("Пользователь обновлен: {}", newUser);
             return newUser;
         }
-        log.warn("Пользователь с id = " + newUser.getId() + " не найден");
+        log.info("Пользователь с id = " + newUser.getId() + " не найден");
         throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
     }
 

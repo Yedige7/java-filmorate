@@ -34,7 +34,7 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public Film update(Film film) {
         if (film.getId() == null) {
-            log.warn("Id должен быть указан");
+            log.info("Id должен быть указан");
             throw new ConditionsNotMetException("Id должен быть указан");
         }
         if (films.containsKey(film.getId())) {
@@ -42,7 +42,7 @@ public class InMemoryFilmStorage implements FilmStorage {
             log.info("Фильм обновлен: {}", film);
             return film;
         }
-        log.warn("Id должен быть указан");
+        log.info("Id должен быть указан");
         throw new NotFoundException("Фильм с id = " + film.getId() + " не найден");
     }
 

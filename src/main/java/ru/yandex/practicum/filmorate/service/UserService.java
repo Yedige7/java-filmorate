@@ -40,7 +40,7 @@ public class UserService {
         friend.getFriends().add(userId);
     }
 
-    private User getUserOrThrow(Long id) {
+    public User getUserOrThrow(Long id) {
         return userStorage.findById(id).orElseThrow(() ->
                 new NotFoundException("Пользователь c " + id + " не найден"));
     }
