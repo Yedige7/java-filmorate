@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -17,6 +18,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.time.Duration;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Repository("filmDbStorage")
@@ -29,29 +31,44 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        String sql = "INSERT INTO films (name, description, release_date, duration, mpa_id) " +
+        // Проверяем MPA
+        System.out.println("film: " + film);
+        Long mpaId = film.getMpa().getId();
+        Mpa mpa = mpaService.getById(mpaId);
+        System.out.println("MPA ID: " + mpaId);
+
+        // Подгружаем и убираем дубликаты жанров
+        Set<Genre> uniqueGenres = film.getGenres().stream()
+                .map(g -> genreService.findById(g.getId()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        film.setGenres(uniqueGenres);
+        System.out.println("Жанры после удаления дубликатов: " + uniqueGenres);
+
+        // Сохраняем фильм
+
+        String sql = "INSERT INTO " +
+                "films (name, description, release_date, duration, mpa_id) " +
                 "VALUES (?, ?, ?, ?, ?)";
-
         KeyHolder keyHolder = new GeneratedKeyHolder();
-
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"film_id"});
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
             ps.setDate(3, Date.valueOf(film.getReleaseDate()));
             ps.setInt(4, (int) film.getDuration().toMinutes());
-            ps.setLong(5, film.getMpa().getId());
+            ps.setLong(5, mpa.getId() != null ? mpa.getId() : null);
             return ps;
         }, keyHolder);
+        System.out.println("123");
+        Long newId = Objects.requireNonNull(keyHolder.getKey()).longValue();
 
-        Long newId = keyHolder.getKey().longValue();
+        // Сохраняем жанры
+        if (!film.getGenres().isEmpty()) {
+            saveGenres(newId, film.getGenres());
+        }
 
-        // Сохраняем жанры (если есть)
-        saveGenres(newId, film.getGenres());
-
-        // Возвращаем фильм с подгруженным mpa.name
+        // Возвращаем фильм с MPA и жанрами
         return findById(newId).orElseThrow(() -> new RuntimeException("Фильм не найден после добавления"));
-
     }
 
     @Override
@@ -63,6 +80,12 @@ public class FilmDbStorage implements FilmStorage {
         } else {
             log.warn("Не найден лайк пользователя {} для фильма {}", userId, filmId);
         }
+    }
+
+    @Override
+    public void addLike(Long filmId, Long userId) {
+        String sql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
+        jdbcTemplate.update(sql, filmId, userId);
     }
 
     @Override
@@ -90,27 +113,65 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? " +
-                "WHERE film_id = ?";
+        System.out.println("Обновляем фильм: " + film);
 
-        int updated = jdbcTemplate.update(sql,
-                film.getName(),
-                film.getDescription(),
-                Date.valueOf(film.getReleaseDate()),
-                (int) film.getDuration().toMinutes(),
-                film.getMpa().getId(),
-                film.getId());
+        // Проверяем, что фильм существует
+        Film existingFilm = findById(film.getId())
+                .orElseThrow(() -> new RuntimeException("Фильм с id " + film.getId() + " не найден"));
+        System.out.println("Существующий фильм: " + existingFilm);
+        System.out.println("film " + film);
+        System.out.println(" Date.valueOf(film.getReleaseDate() " + Date.valueOf(film.getReleaseDate()));
+        System.out.println("(int) film.getDuration().toMinutes() " + (int) film.getDuration().toMinutes());
+        // Обновляем основные поля фильма
 
-        if (updated == 0) {
-            throw new RuntimeException("Фильм с id " + film.getId() + " не найден для обновления");
+        Mpa mpa = mpaService.getById(film.getMpa().getId());
+        int rowsUpdated = 0;
+        if (mpa != null) {
+            String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE film_id = ?";
+
+            film.setMpa(mpa);
+            rowsUpdated = jdbcTemplate.update(sql,
+                    film.getName(),
+                    film.getDescription(),
+                    Date.valueOf(film.getReleaseDate()),
+                    (int) film.getDuration().toMinutes(),
+                    mpa.getId(),
+                    film.getId()
+            );
+        } else {
+            String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ? WHERE film_id = ?";
+
+            film.setMpa(null);
+            rowsUpdated = jdbcTemplate.update(sql,
+                    film.getName(),
+                    film.getDescription(),
+                    Date.valueOf(film.getReleaseDate()),
+                    (int) film.getDuration().toMinutes(),
+                    film.getId()
+            );
         }
 
-        // Обновляем жанры (удаляем старые и добавляем новые)
-        updateGenres(film.getId(), film.getGenres());
+        if (rowsUpdated == 0) {
+            throw new NotFoundException("Пользователь с id=" + film.getId() + " не найден");
+        }
+        System.out.println("Обновление основных полей прошло");
 
-        // Возвращаем фильм с подгруженным mpa.name
-        return findById(film.getId()).orElseThrow(() -> new RuntimeException("Фильм не найден после обновления"));
+        // Обновляем жанры только если они переданы
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            updateGenres(film.getId(), film.getGenres());
+        }
 
+
+        // Подгружаем жанры из базы, чтобы гарантировать актуальность
+        String selectGenres = "SELECT g.genre_id, g.name FROM genres g " +
+                "JOIN films_genres fg ON g.genre_id = fg.genre_id " +
+                "WHERE fg.film_id=? ORDER BY g.genre_id";
+        List<Genre> genreList = jdbcTemplate.query(selectGenres, (rs, rowNum) ->
+                new Genre(rs.getLong("genre_id"), rs.getString("name")), film.getId());
+        film.setGenres(new LinkedHashSet<>(genreList));
+        System.out.println("Жанры после подгрузки из базы: " + film.getGenres());
+
+        return film;
     }
 
     @Override
@@ -126,12 +187,18 @@ public class FilmDbStorage implements FilmStorage {
             film.setId(rs.getLong("film_id"));
             film.setName(rs.getString("name"));
             film.setDescription(rs.getString("description"));
-            film.setReleaseDate(rs.getDate("release_date").toLocalDate());
+            Date releaseDate = rs.getDate("release_date");
+            film.setReleaseDate(releaseDate != null ? releaseDate.toLocalDate() : null);
             film.setDuration(Duration.ofMinutes(rs.getInt("duration")));
 
-            Mpa mpa = new Mpa();
-            mpa.setId(rs.getLong("mpa_id"));
-            mpa.setName(rs.getString("mpa_name"));
+            Long mpaId = rs.getObject("mpa_id", Long.class); // null-safe
+            String mpaName = rs.getString("mpa_name"); // вернёт null, если нет
+            Mpa mpa = null;
+            if (mpaId != null) {
+                mpa = new Mpa();
+                mpa.setId(mpaId);
+                mpa.setName(mpaName);
+            }
             film.setMpa(mpa);
 
             return film;
@@ -146,11 +213,45 @@ public class FilmDbStorage implements FilmStorage {
         // Подгрузка жанров
         String genreSql = "SELECT g.genre_id, g.name FROM genres g " +
                 "JOIN films_genres fg ON g.genre_id = fg.genre_id " +
-                "WHERE fg.film_id = ?";
-        Set<Genre> genres = new HashSet<>(jdbcTemplate.query(genreSql,
-                (rs, rowNum) -> new Genre(rs.getLong("genre_id"), rs.getString("name")), id));
-        film.setGenres(genres);
+                "WHERE fg.film_id = ? order by g.genre_id";
+        List<Genre> genreList = jdbcTemplate.query(genreSql,
+                (rs, rowNum) -> new Genre(rs.getLong("genre_id"), rs.getString("name")), id);
+        film.setGenres(genreList != null ? new LinkedHashSet<>(genreList) : new LinkedHashSet<>());
 
         return Optional.of(film);
+    }
+
+    @Override
+    public List<Film> getPopularFilms(int count) {
+        String sql = "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name AS mpa_name, " +
+                "       COUNT(fl.user_id) AS likes_count " +
+                "FROM films f " +
+                "LEFT JOIN mpa m ON f.mpa_id = m.mpa_id " +
+                "LEFT JOIN LIKES fl ON f.film_id = fl.film_id " +
+                "GROUP BY f.film_id, m.name " +
+                "ORDER BY likes_count DESC " +
+                "LIMIT ?";
+
+        return jdbcTemplate.query(sql, new Object[]{count}, (rs, rowNum) -> {
+            Film film = new Film();
+            film.setId(rs.getLong("film_id"));
+            film.setName(rs.getString("name"));
+            film.setDescription(rs.getString("description"));
+            film.setReleaseDate(rs.getDate("release_date").toLocalDate());
+            film.setDuration(Duration.ofMinutes(rs.getInt("duration")));
+
+            Long mpaId = rs.getLong("mpa_id");
+            if (mpaId != 0) {
+                Mpa mpa = new Mpa();
+                mpa.setId(mpaId);
+                mpa.setName(rs.getString("mpa_name"));
+                film.setMpa(mpa);
+            }
+
+            // Создаем пустое множество лайков, если нужно для теста
+            film.setLikes(new HashSet<>());
+
+            return film;
+        });
     }
 }

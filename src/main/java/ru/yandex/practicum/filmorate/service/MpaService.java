@@ -27,7 +27,6 @@ public class MpaService {
 
 
     public Mpa getById(long id) {
-        log.info("id " + id);
         return mpaDbStorage.findById(id).orElseThrow(() ->
                 new NotFoundException("Рейтинг c " + id + " не найден"));
     }

@@ -33,9 +33,7 @@ public class UserService {
     }
 
     public User update(User newUser) {
-        log.warn("1 newUser " + newUser);
         getUserOrThrow(newUser.getId());
-        log.warn("2 newUser " + newUser);
         return userStorage.update(newUser);
     }
 
@@ -47,7 +45,6 @@ public class UserService {
     }
 
     public User getUserOrThrow(Long id) {
-        log.warn("getUserOrThrow " + id);
         return userStorage.findById(id).orElseThrow(() ->
                 new NotFoundException("Пользователь c " + id + " не найден"));
     }

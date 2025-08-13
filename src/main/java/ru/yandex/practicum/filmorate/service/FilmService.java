@@ -10,7 +10,6 @@ import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,10 +39,10 @@ public class FilmService {
     public void addLike(Long filmId, Long userId) {
         getFilmOrThrow(filmId);
         userService.getUserOrThrow(userId);
+        filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(Long filmId, Long userId) {
-        log.info(" removeLike " + filmId + " " + userId);
         getFilmOrThrow(filmId);
         userService.getUserOrThrow(userId);
         filmStorage.removeLike(filmId, userId);
@@ -51,14 +50,10 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int count) {
-        return filmStorage.findAll().stream()
-                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
-                .limit(count)
-                .collect(Collectors.toList());
+        return filmStorage.getPopularFilms(count);
     }
 
     public Film getFilmOrThrow(Long id) {
-        return filmStorage.findById(id).orElseThrow(() ->
-                new NotFoundException("Фильм c " + id + " не найден"));
+        return filmStorage.findById(id).orElseThrow(() -> new NotFoundException("Фильм c " + id + " не найден"));
     }
 }

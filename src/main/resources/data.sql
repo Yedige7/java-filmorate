@@ -1,10 +1,19 @@
+
+SET REFERENTIAL_INTEGRITY FALSE;
+DELETE FROM mpa;
 DELETE FROM friends;
-DELETE FROM films;
-DELETE FROM users;
 DELETE FROM films_genres;
 DELETE FROM genres;
 DELETE FROM likes;
-DELETE FROM mpa;
+-- 2. Удаляем все данные
+DELETE FROM users;
+DELETE FROM films;
+-- 3. Сбрасываем автоинкремент для id
+ALTER TABLE users ALTER COLUMN USER_ID RESTART WITH 1;
+ALTER TABLE films ALTER COLUMN FILM_ID RESTART WITH 1;
+
+-- 4. Включаем проверки внешних ключей обратно
+SET REFERENTIAL_INTEGRITY TRUE;
 
 INSERT INTO mpa (mpa_id, name)
 VALUES (1, 'G'),
