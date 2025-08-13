@@ -19,6 +19,7 @@ import ru.yandex.practicum.filmorate.util.DurationToMinutesSerializer;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -55,7 +56,7 @@ public class Film {
     private Mpa mpa;
 
     // Жанры
-    private Set<Genre> genres = new HashSet<>();
+    private Set<Genre> genres = new LinkedHashSet<>();
 
     @JsonProperty(value = "rate", access = JsonProperty.Access.READ_ONLY)
     public int getRate() {
