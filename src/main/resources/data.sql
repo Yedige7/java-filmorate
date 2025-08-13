@@ -1,54 +1,54 @@
---DELETE FROM FRIENDS;
---DELETE FROM FILMS;
---DELETE FROM USERS;
---DELETE FROM USERS;
---DELETE FROM FILMS_GENRE;
---DELETE FROM GENRE;
---DELETE FROM LIKES;
---DELETE FROM MPA;
+DELETE FROM friends;
+DELETE FROM films;
+DELETE FROM users;
+DELETE FROM films_genres;
+DELETE FROM genres;
+DELETE FROM likes;
+DELETE FROM mpa;
 
-INSERT INTO MPA (MPA_ID, NAME)
+INSERT INTO mpa (mpa_id, name)
 VALUES (1, 'G'),
-VALUES (2, 'PG'),
-VALUES (3, 'PG-13'),
-VALUES (4, 'R'),
-VALUES (5, 'NC-17');
+(2, 'PG'),
+(3, 'PG-13'),
+(4, 'R'),
+(5, 'NC-17');
 
 
-INSERT INTO GENRE (GENRE_ID, NAME)
+INSERT INTO genres (genre_id, name)
 VALUES (1, 'Комедия'),
-VALUES (2, 'Драма'),
-VALUES (3, 'Мультфильм'),
-VALUES (4, 'Триллер'),
-VALUES (5, 'Документальный');
-VALUES (5, 'Боевик');
+(2, 'Драма'),
+(3, 'Мультфильм'),
+(4, 'Триллер'),
+(5, 'Документальный'),
+(6, 'Боевик');
 
 /*
 -- Фильмы
 
-INSERT INTO "FILMS" ("NAME", "DESCRIPTION", "RELEASE_DATE", "DURATION", "MPA_ID")
+INSERT INTO films (name, description, release_date, duration, mpa_id)
 VALUES ('Inception', 'Science fiction thriller by Christopher Nolan', '2010-07-16', INTERVAL '148 minutes', 1);
 
 -- Пользователи
-INSERT INTO "USERS" ("EMAIL", "LOGIN", "NAME", "BIRTHDAY")
+INSERT INTO users (email, login, name, birthday)
 VALUES ('Zhan.dos@example.com', 'ZhanDos', 'Zhan Dos', '1994-01-15');
 
-INSERT INTO "USERS" ("EMAIL", "LOGIN", "NAME", "BIRTHDAY")
+-- Пользователи
+INSERT INTO users (email, login, name, birthday)
 VALUES ('A.bay@example.com', 'Abay', 'Abay Bek', '1994-10-15');
 
 -- Связь фильма и жанра
-INSERT INTO "FILMS_GENRE" ("GENRE_ID", "FILM_ID")
+INSERT INTO films_genres (genre_id, film_id)
 VALUES (1, 1);
 
 -- Дружба (неподтверждённая)
-INSERT INTO "FRIENDS" ("USER_ID", "FRIEND_ID", "CONFIRMED")
+INSERT INTO friends (user_id, friend_id, isConfirm)
 VALUES (1, 2, false);
 
-INSERT INTO "FRIENDS" ("USER_ID", "FRIEND_ID", "CONFIRMED")
+INSERT INTO friends (user_id, friend_id, isConfirm)
 VALUES (2, 1, true);
 
 -- Лайк фильма пользователем
-INSERT INTO "LIKES" ("USER_ID", "FILM_ID")
+INSERT INTO likes (user_id, film_id)
 VALUES (1, 1);
 
  */

@@ -16,4 +16,6 @@ public interface FilmStorage {
     public Film update(Film film);
 
     Optional<Film> findById(Long id);
+
+    void removeLike(Long filmId, Long userId);
 }

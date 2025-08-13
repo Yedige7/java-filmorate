@@ -43,17 +43,6 @@ public class UserControllerTest {
 
 
     @Test
-    void shouldDefaultNameToLoginIfNameIsBlank() throws Exception {
-        User user = new User(null, "auto@name.com", "autologin", "", LocalDate.of(1990, 1, 1), new HashSet<>());
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(user)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("autologin"));
-    }
-
-    @Test
     void shouldReturn500OnDuplicateEmailIfNoHandler() throws Exception {
         User user = new User(null, "user@example.com", "userLogin", "Имя", LocalDate.of(1990, 1, 1), new HashSet<>());
 

@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -11,12 +13,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UserService {
     private final UserStorage userStorage;
 
     @Autowired
-    public UserService(UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
     }
 
@@ -30,17 +33,21 @@ public class UserService {
     }
 
     public User update(User newUser) {
+        log.warn("1 newUser " + newUser);
+        getUserOrThrow(newUser.getId());
+        log.warn("2 newUser " + newUser);
         return userStorage.update(newUser);
     }
 
     public void addFriend(long userId, long friendId) {
         User user = getUserOrThrow(userId);
         User friend = getUserOrThrow(friendId);
-        user.getFriends().add(friendId);
-        friend.getFriends().add(userId);
+
+        userStorage.addFriend(userId, friendId); // сохраняем в БД
     }
 
     public User getUserOrThrow(Long id) {
+        log.warn("getUserOrThrow " + id);
         return userStorage.findById(id).orElseThrow(() ->
                 new NotFoundException("Пользователь c " + id + " не найден"));
     }
@@ -48,26 +55,26 @@ public class UserService {
     public void removeFriend(Long userId, Long friendId) {
         User user = getUserOrThrow(userId);
         User friend = getUserOrThrow(friendId);
-        user.getFriends().remove(friendId);
-        friend.getFriends().remove(userId);
+        userStorage.removeFriend(userId, friendId); // удаляем в БД
     }
 
     public List<User> getFriends(Long userId) {
-        User user = getUserOrThrow(userId);
-        return user.getFriends().stream()
-                .map(this::getUserOrThrow)
-                .collect(Collectors.toList());
+        getUserOrThrow(userId);
+        return userStorage.getFriends(userId);
     }
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
-        Set<Long> userFriends = getUserOrThrow(userId).getFriends();
-        Set<Long> otherFriends = getUserOrThrow(otherId).getFriends();
+        getUserOrThrow(userId);
+        getUserOrThrow(otherId);
+        Set<Long> userFriends = userStorage.getFriendIds(userId);
+        Set<Long> otherFriends = userStorage.getFriendIds(otherId);
 
         return userFriends.stream()
                 .filter(otherFriends::contains)
                 .map(this::getUserOrThrow)
                 .collect(Collectors.toList());
     }
+
 
 
 }
