@@ -11,20 +11,16 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class MpaDbStorage {
+    private static final String FIND_ALL_QUERY = "SELECT * FROM mpa ORDER BY MPA_ID";
+    private static final String FIND_BY_MPA_QUERY = "SELECT * FROM mpa WHERE MPA_ID = ?";
     private final JdbcTemplate jdbcTemplate;
 
     public List<Mpa> findAll() {
-        String sql = "SELECT * FROM mpa ORDER BY MPA_ID";
-        return jdbcTemplate.query(sql, (rs, rowNum) ->
-                new Mpa(rs.getLong("mpa_id"), rs.getString("name"))
-        );
+        return jdbcTemplate.query(FIND_ALL_QUERY, (rs, rowNum) -> new Mpa(rs.getLong("mpa_id"), rs.getString("name")));
     }
 
     public Optional<Mpa> findById(long id) {
-        String sql = "SELECT * FROM mpa WHERE MPA_ID = ?";
-        List<Mpa> list = jdbcTemplate.query(sql, (rs, rowNum) ->
-                new Mpa(rs.getLong("mpa_id"), rs.getString("name")), id
-        );
-        return list.stream().findFirst();
+        List<Mpa> list = jdbcTemplate.query(FIND_BY_MPA_QUERY, (rs, rowNum) -> new Mpa(rs.getLong("mpa_id"), rs.getString("name")), id);
+        return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.get(0));
     }
 }

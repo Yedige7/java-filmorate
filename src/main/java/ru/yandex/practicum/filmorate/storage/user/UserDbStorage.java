@@ -21,17 +21,31 @@ import java.util.*;
 @RequiredArgsConstructor
 public class UserDbStorage implements UserStorage {
 
+    private static final String FIND_ALL_QUERY = "SELECT * FROM users";
+    private static final String FIND_BY_EMAIL_QUERY = "SELECT COUNT(*) FROM users WHERE email = ?";
+    private static final String INSERT_QUERY = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
+    private static final String FIND_BY_USER_ID_QUERY = "SELECT * FROM users WHERE USER_ID = ?";
+    private static final String FIND_FRIEND_BY_USER_ID_QUERY = "SELECT friend_id FROM friends WHERE user_id = ?";
+    private static final String INSERT_FRIEND_QUERY = "INSERT INTO friends (user_id, friend_id) VALUES (?, ?)";
+    private static final String DELETE_FRIEND_QUERY = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
+    private static final String FIND_FRIEND_QUERY = "SELECT u.* FROM users u JOIN friends f ON u.USER_ID = f.friend_id " +
+            "WHERE f.user_id = ?";
+    private static final String FIND_COMMON_FRIEND_QUERY = "SELECT u.* FROM users u " +
+            "JOIN friends f1 ON  f1.friend_id = u.user_id " +
+            "JOIN friends f2 ON f2.friend_id = u.user_id " +
+            "WHERE f1.user_id = ? AND " +
+            "f2.user_id = ?";
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public Collection<User> findAll() {
-        String sql = "SELECT * FROM users";
-        return jdbcTemplate.query(sql, (rs, rowNum) -> makeUser(rs));
+        return jdbcTemplate.query(FIND_ALL_QUERY, (rs, rowNum) -> makeUser(rs));
     }
 
     public boolean emailExists(String email) {
-        String sql = "SELECT COUNT(*) FROM users WHERE email = ?";
-        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, email);
+
+        Integer count = jdbcTemplate.queryForObject(FIND_BY_EMAIL_QUERY, Integer.class, email);
         return count != null && count > 0;
     }
 
@@ -40,10 +54,10 @@ public class UserDbStorage implements UserStorage {
         if (emailExists(user.getEmail())) {
             throw new DuplicatedDataException("Этот имейл уже используется");
         }
-        String sql = "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
+
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            PreparedStatement ps = connection.prepareStatement(INSERT_QUERY, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getLogin());
             if (user.getName() == null || user.getName().isBlank()) {
@@ -60,9 +74,8 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User update(User newUser) {
-        String sql = "UPDATE users SET email = ?, login = ?, name = ?, birthday = ? WHERE user_id = ?";
         int rows = jdbcTemplate.update(
-                sql,
+                UPDATE_QUERY,
                 newUser.getEmail(),
                 newUser.getLogin(),
                 newUser.getName(),
@@ -70,22 +83,23 @@ public class UserDbStorage implements UserStorage {
                 newUser.getId()
         );
 
-
         if (rows == 0) {
             throw new NotFoundException("Пользователь с id=" + newUser.getId() + " не найден");
         }
 
-        return findById(newUser.getId()).orElseThrow(() ->
-                new NotFoundException("Пользователь с id=" + newUser.getId() + " не найден после обновления"));
+        return newUser;
     }
 
     @Override
     public Optional<User> findById(Long id) {
-        String sql = "SELECT * FROM users WHERE USER_ID = ?";
-
-        return jdbcTemplate.query(sql, new UserMapper(), id)
-                .stream()
-                .findFirst();
+        try {
+            User user = jdbcTemplate.queryForObject(
+                    FIND_BY_USER_ID_QUERY, new UserMapper(), id
+            );
+            return Optional.of(user);
+        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
     }
 
     private User makeUser(ResultSet rs) throws SQLException {
@@ -102,33 +116,26 @@ public class UserDbStorage implements UserStorage {
     }
 
     private Set<Long> findFriendList(Long id) {
-        String sql = "SELECT friend_id FROM friends WHERE user_id = ?";
-        return new HashSet<>(jdbcTemplate.query(sql, (rs, rowNum) -> rs.getLong("friend_id"), id));
+        return new HashSet<>(jdbcTemplate.query(FIND_FRIEND_BY_USER_ID_QUERY, (rs, rowNum) -> rs.getLong("friend_id"), id));
     }
 
     @Override
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friends (user_id, friend_id) VALUES (?, ?)";
-        jdbcTemplate.update(sql, userId, friendId);
+        jdbcTemplate.update(INSERT_FRIEND_QUERY, userId, friendId);
     }
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
-        String sql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
-        jdbcTemplate.update(sql, userId, friendId);
+        jdbcTemplate.update(DELETE_FRIEND_QUERY, userId, friendId);
     }
 
     @Override
     public List<User> getFriends(Long userId) {
-        String sql = "SELECT u.* FROM users u " +
-                "JOIN friends f ON u.USER_ID = f.friend_id " +
-                "WHERE f.user_id = ?";
-        return jdbcTemplate.query(sql, new UserMapper(), userId);
+        return jdbcTemplate.query(FIND_FRIEND_QUERY, new UserMapper(), userId);
     }
 
     @Override
-    public Set<Long> getFriendIds(Long userId) {
-        String sql = "SELECT friend_id FROM friends WHERE user_id = ?";
-        return new HashSet<>(jdbcTemplate.queryForList(sql, Long.class, userId));
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        return jdbcTemplate.query(FIND_COMMON_FRIEND_QUERY, new UserMapper(), userId, otherId);
     }
 }

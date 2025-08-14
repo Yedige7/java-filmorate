@@ -12,20 +12,20 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class GenreDbStorage {
 
+    private static final String FIND_ALL_QUERY = "SELECT * FROM genres ORDER BY genre_id";
+    private static final String FIND_BY_GENRE_QUERY = "SELECT * FROM genres WHERE genre_id = ?";
     private final JdbcTemplate jdbcTemplate;
 
     public List<Genre> findAll() {
-        String sql = "SELECT * FROM genres ORDER BY genre_id";
-        return jdbcTemplate.query(sql, (rs, rowNum) ->
+        return jdbcTemplate.query(FIND_ALL_QUERY, (rs, rowNum) ->
                 new Genre(rs.getLong("genre_id"), rs.getString("name"))
         );
     }
 
     public Optional<Genre> findById(long id) {
-        String sql = "SELECT * FROM genres WHERE genre_id = ?";
-        List<Genre> list = jdbcTemplate.query(sql, (rs, rowNum) ->
+        List<Genre> list = jdbcTemplate.query(FIND_BY_GENRE_QUERY, (rs, rowNum) ->
                 new Genre(rs.getLong("genre_id"), rs.getString("name")), id
         );
-        return list.stream().findFirst();
+        return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.get(0));
     }
 }

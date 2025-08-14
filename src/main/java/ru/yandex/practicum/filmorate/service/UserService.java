@@ -10,8 +10,6 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -38,9 +36,8 @@ public class UserService {
     }
 
     public void addFriend(long userId, long friendId) {
-        User user = getUserOrThrow(userId);
-        User friend = getUserOrThrow(friendId);
-
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
         userStorage.addFriend(userId, friendId);
     }
 
@@ -50,8 +47,8 @@ public class UserService {
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        User user = getUserOrThrow(userId);
-        User friend = getUserOrThrow(friendId);
+        getUserOrThrow(userId);
+        getUserOrThrow(friendId);
         userStorage.removeFriend(userId, friendId);
     }
 
@@ -63,15 +60,8 @@ public class UserService {
     public List<User> getCommonFriends(Long userId, Long otherId) {
         getUserOrThrow(userId);
         getUserOrThrow(otherId);
-        Set<Long> userFriends = userStorage.getFriendIds(userId);
-        Set<Long> otherFriends = userStorage.getFriendIds(otherId);
-
-        return userFriends.stream()
-                .filter(otherFriends::contains)
-                .map(this::getUserOrThrow)
-                .collect(Collectors.toList());
+        return userStorage.getCommonFriends(userId, otherId);
     }
-
 
 
 }

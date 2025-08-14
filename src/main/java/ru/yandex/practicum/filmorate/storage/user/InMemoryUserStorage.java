@@ -7,10 +7,6 @@ import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.*;
 
 @Slf4j
@@ -86,7 +82,7 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public Set<Long> getFriendIds(Long userId) {
+    public List<User> getCommonFriends(Long userId, Long otherId) {
         return null;
     }
 }
