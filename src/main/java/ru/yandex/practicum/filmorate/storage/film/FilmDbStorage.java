@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.storage.film;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -16,6 +17,7 @@ import ru.yandex.practicum.filmorate.service.MpaService;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,6 +39,8 @@ public class FilmDbStorage implements FilmStorage {
         Mpa mpa = mpaService.getById(mpaId);
         System.out.println("MPA ID: " + mpaId);
 
+        System.out.println("film.getGenres(): " + film.getGenres());
+
         // Подгружаем и убираем дубликаты жанров
         Set<Genre> uniqueGenres = film.getGenres().stream()
                 .map(g -> genreService.findById(g.getId()))
@@ -45,22 +49,27 @@ public class FilmDbStorage implements FilmStorage {
         System.out.println("Жанры после удаления дубликатов: " + uniqueGenres);
 
         // Сохраняем фильм
-
-        String sql = "INSERT INTO " +
-                "films (name, description, release_date, duration, mpa_id) " +
-                "VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO films (name, description, release_date, duration, mpa_id) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql, new String[]{"film_id"});
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
             ps.setDate(3, Date.valueOf(film.getReleaseDate()));
-            ps.setInt(4, (int) film.getDuration().toMinutes());
-            ps.setLong(5, mpa.getId() != null ? mpa.getId() : null);
+            if (film.getDuration() != null) {
+                ps.setInt(4, (int) film.getDuration().toMinutes());
+            } else {
+                ps.setNull(4, java.sql.Types.INTEGER);
+            }
+            if (mpa != null && mpa.getId() != null) {
+                ps.setLong(5, mpa.getId());
+            } else {
+                ps.setNull(5, java.sql.Types.BIGINT);
+            }
             return ps;
         }, keyHolder);
-        System.out.println("123");
-        Long newId = Objects.requireNonNull(keyHolder.getKey()).longValue();
+
+        Long newId = keyHolder.getKey().longValue();
 
         // Сохраняем жанры
         if (!film.getGenres().isEmpty()) {
@@ -100,10 +109,25 @@ public class FilmDbStorage implements FilmStorage {
         if (genres == null || genres.isEmpty()) {
             return;
         }
-        String sql = "INSERT INTO films_genres (film_id, genre_id) VALUES (?, ?)";
-        for (Genre genre : genres) {
-            jdbcTemplate.update(sql, filmId, genre.getId());
+        System.out.println(" saveGenres " + genres);
+        if (genres.size() > 0) {
+            String sql = "INSERT INTO films_genres (film_id, genre_id) VALUES (?, ?)";
+            Genre[] g = genres.toArray(new Genre[genres.size()]);
+            jdbcTemplate.batchUpdate(
+                    sql,
+                    new BatchPreparedStatementSetter() {
+                        @Override
+                        public void setValues(PreparedStatement ps, int i) throws SQLException {
+                            ps.setLong(1, filmId);
+                            ps.setLong(2, g[i].getId());
+                        }
+
+                        public int getBatchSize() {
+                            return genres.size();
+                        }
+                    });
         }
+        System.out.println(" saveGenres * 2  ");
     }
 
     private void updateGenres(Long filmId, Set<Genre> genres) {
@@ -120,36 +144,19 @@ public class FilmDbStorage implements FilmStorage {
                 .orElseThrow(() -> new RuntimeException("Фильм с id " + film.getId() + " не найден"));
         System.out.println("Существующий фильм: " + existingFilm);
         System.out.println("film " + film);
-        System.out.println(" Date.valueOf(film.getReleaseDate() " + Date.valueOf(film.getReleaseDate()));
-        System.out.println("(int) film.getDuration().toMinutes() " + (int) film.getDuration().toMinutes());
         // Обновляем основные поля фильма
-
+        String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE film_id = ?";
         Mpa mpa = mpaService.getById(film.getMpa().getId());
-        int rowsUpdated = 0;
-        if (mpa != null) {
-            String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE film_id = ?";
+        film.setMpa(mpa);
+        int rowsUpdated = jdbcTemplate.update(sql,
+                film.getName(),
+                film.getDescription(),
+                Date.valueOf(film.getReleaseDate()),
+                (int) film.getDuration().toMinutes(),
+                mpa.getId(),
+                film.getId()
+        );
 
-            film.setMpa(mpa);
-            rowsUpdated = jdbcTemplate.update(sql,
-                    film.getName(),
-                    film.getDescription(),
-                    Date.valueOf(film.getReleaseDate()),
-                    (int) film.getDuration().toMinutes(),
-                    mpa.getId(),
-                    film.getId()
-            );
-        } else {
-            String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ? WHERE film_id = ?";
-
-            film.setMpa(null);
-            rowsUpdated = jdbcTemplate.update(sql,
-                    film.getName(),
-                    film.getDescription(),
-                    Date.valueOf(film.getReleaseDate()),
-                    (int) film.getDuration().toMinutes(),
-                    film.getId()
-            );
-        }
 
         if (rowsUpdated == 0) {
             throw new NotFoundException("Пользователь с id=" + film.getId() + " не найден");
