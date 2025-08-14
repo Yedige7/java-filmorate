@@ -68,7 +68,6 @@ public class FilmDbStorage implements FilmStorage {
             saveGenres(newId, film.getGenres());
         }
 
-        // Возвращаем фильм с MPA и жанрами
         return findById(newId).orElseThrow(() -> new RuntimeException("Фильм не найден после добавления"));
     }
 
@@ -149,13 +148,11 @@ public class FilmDbStorage implements FilmStorage {
             throw new NotFoundException("Пользователь с id=" + film.getId() + " не найден");
         }
 
-        // Обновляем жанры только если они переданы
+
         if (film.getGenres() != null && !film.getGenres().isEmpty()) {
             updateGenres(film.getId(), film.getGenres());
         }
 
-
-        // Подгружаем жанры из базы, чтобы гарантировать актуальность
         String selectGenres = "SELECT g.genre_id, g.name FROM genres g " +
                 "JOIN films_genres fg ON g.genre_id = fg.genre_id " +
                 "WHERE fg.film_id=? ORDER BY g.genre_id";
@@ -202,7 +199,6 @@ public class FilmDbStorage implements FilmStorage {
 
         Film film = films.get(0);
 
-        // Подгрузка жанров
         String genreSql = "SELECT g.genre_id, g.name FROM genres g " +
                 "JOIN films_genres fg ON g.genre_id = fg.genre_id " +
                 "WHERE fg.film_id = ? order by g.genre_id";
@@ -240,7 +236,6 @@ public class FilmDbStorage implements FilmStorage {
                 film.setMpa(mpa);
             }
 
-            // Создаем пустое множество лайков, если нужно для теста
             film.setLikes(new HashSet<>());
 
             return film;

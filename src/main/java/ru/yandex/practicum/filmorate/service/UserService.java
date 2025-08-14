@@ -41,7 +41,7 @@ public class UserService {
         User user = getUserOrThrow(userId);
         User friend = getUserOrThrow(friendId);
 
-        userStorage.addFriend(userId, friendId); // сохраняем в БД
+        userStorage.addFriend(userId, friendId);
     }
 
     public User getUserOrThrow(Long id) {
@@ -52,7 +52,7 @@ public class UserService {
     public void removeFriend(Long userId, Long friendId) {
         User user = getUserOrThrow(userId);
         User friend = getUserOrThrow(friendId);
-        userStorage.removeFriend(userId, friendId); // удаляем в БД
+        userStorage.removeFriend(userId, friendId);
     }
 
     public List<User> getFriends(Long userId) {

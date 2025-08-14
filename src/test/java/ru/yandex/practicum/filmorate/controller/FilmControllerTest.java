@@ -132,34 +132,29 @@ class FilmControllerTest {
         Film film1 = new Film(null, "Крик", "Крик ужастик", Duration.ofMinutes(90), LocalDate.of(2001, 1, 1), new HashSet<>(), new Mpa(1L, null),  new HashSet<>());
         User u1 = new User(null, "user1@example.com", "login1", "User1", LocalDate.of(1990, 1, 1), new HashSet<>());
 
-        // Создаем фильм
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(film1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
 
-        // Создаем пользователя
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(u1)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
 
-        // PUT /films/{id}/like/{userId}
+
         mockMvc.perform(put("/films/1/like/1"))
                 .andExpect(status().isOk());
 
-        // GET /films/popular?count={count}
         mockMvc.perform(get("/films/popular?count=5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].name").value("Крик"));
 
-        // DELETE /films/{id}/like/{userId}
         mockMvc.perform(delete("/films/1/like/1"))
                 .andExpect(status().isOk());
 
-        // Проверяем, что лайков больше нет
         mockMvc.perform(get("/films/popular?count=5"))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[{\"id\":1,\"name\":\"Крик\",\"description\":\"Крик ужастик\",\"releaseDate\":\"2001-01-01\",\"duration\":90,\"likes\":[]}]"));

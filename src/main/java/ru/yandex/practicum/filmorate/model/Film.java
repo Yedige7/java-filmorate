@@ -52,10 +52,8 @@ public class Film {
     @NotNull
     private Set<Long> likes = new HashSet<>();
 
-    // Рейтинг фильма
     private Mpa mpa;
 
-    // Жанры
     private Set<Genre> genres = new LinkedHashSet<>();
 
     @JsonProperty(value = "rate", access = JsonProperty.Access.READ_ONLY)

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface FilmStorage {
-    //методы добавления, удаления и модификации объектов.
 
     public Film create(Film film);
 
