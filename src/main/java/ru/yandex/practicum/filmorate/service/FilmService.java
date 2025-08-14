@@ -32,7 +32,6 @@ public class FilmService {
     }
 
     public Film update(Film newFilm) {
-        log.info("newFilm " + newFilm);
         return filmStorage.update(newFilm);
     }
 

@@ -33,22 +33,14 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film create(Film film) {
-        // Проверяем MPA
-        System.out.println("film: " + film);
         Long mpaId = film.getMpa().getId();
         Mpa mpa = mpaService.getById(mpaId);
-        System.out.println("MPA ID: " + mpaId);
 
-        System.out.println("film.getGenres(): " + film.getGenres());
-
-        // Подгружаем и убираем дубликаты жанров
         Set<Genre> uniqueGenres = film.getGenres().stream()
                 .map(g -> genreService.findById(g.getId()))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         film.setGenres(uniqueGenres);
-        System.out.println("Жанры после удаления дубликатов: " + uniqueGenres);
 
-        // Сохраняем фильм
         String sql = "INSERT INTO films (name, description, release_date, duration, mpa_id) VALUES (?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(connection -> {
@@ -109,7 +101,7 @@ public class FilmDbStorage implements FilmStorage {
         if (genres == null || genres.isEmpty()) {
             return;
         }
-        System.out.println(" saveGenres " + genres);
+
         if (genres.size() > 0) {
             String sql = "INSERT INTO films_genres (film_id, genre_id) VALUES (?, ?)";
             Genre[] g = genres.toArray(new Genre[genres.size()]);
@@ -127,7 +119,7 @@ public class FilmDbStorage implements FilmStorage {
                         }
                     });
         }
-        System.out.println(" saveGenres * 2  ");
+
     }
 
     private void updateGenres(Long filmId, Set<Genre> genres) {
@@ -137,14 +129,9 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        System.out.println("Обновляем фильм: " + film);
-
-        // Проверяем, что фильм существует
         Film existingFilm = findById(film.getId())
                 .orElseThrow(() -> new RuntimeException("Фильм с id " + film.getId() + " не найден"));
-        System.out.println("Существующий фильм: " + existingFilm);
-        System.out.println("film " + film);
-        // Обновляем основные поля фильма
+
         String sql = "UPDATE films SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ? WHERE film_id = ?";
         Mpa mpa = mpaService.getById(film.getMpa().getId());
         film.setMpa(mpa);
@@ -161,7 +148,6 @@ public class FilmDbStorage implements FilmStorage {
         if (rowsUpdated == 0) {
             throw new NotFoundException("Пользователь с id=" + film.getId() + " не найден");
         }
-        System.out.println("Обновление основных полей прошло");
 
         // Обновляем жанры только если они переданы
         if (film.getGenres() != null && !film.getGenres().isEmpty()) {
@@ -176,7 +162,6 @@ public class FilmDbStorage implements FilmStorage {
         List<Genre> genreList = jdbcTemplate.query(selectGenres, (rs, rowNum) ->
                 new Genre(rs.getLong("genre_id"), rs.getString("name")), film.getId());
         film.setGenres(new LinkedHashSet<>(genreList));
-        System.out.println("Жанры после подгрузки из базы: " + film.getGenres());
 
         return film;
     }
