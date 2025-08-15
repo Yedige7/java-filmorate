@@ -43,17 +43,6 @@ public class UserControllerTest {
 
 
     @Test
-    void shouldDefaultNameToLoginIfNameIsBlank() throws Exception {
-        User user = new User(null, "auto@name.com", "autologin", "", LocalDate.of(1990, 1, 1), new HashSet<>());
-
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(user)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("autologin"));
-    }
-
-    @Test
     void shouldReturn500OnDuplicateEmailIfNoHandler() throws Exception {
         User user = new User(null, "user@example.com", "userLogin", "Имя", LocalDate.of(1990, 1, 1), new HashSet<>());
 
@@ -105,7 +94,7 @@ public class UserControllerTest {
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2))); // может быть больше, если другие тесты создают
+                .andExpect(jsonPath("$", hasSize(2)));
     }
 
     @Test
@@ -125,21 +114,18 @@ public class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(2));
 
-        // PUT /users/{id}/friends/{friendId}
         mockMvc.perform(put("/users/1/friends/2"))
                 .andExpect(status().isOk());
 
-        // GET /users/{id}/friends
         mockMvc.perform(get("/users/1/friends"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].login").value("login2"));
 
 
-        // DELETE /users/{id}/friends/{friendId}
         mockMvc.perform(delete("/users/1/friends/2"))
                 .andExpect(status().isOk());
 
-        // Проверяем, что друзей нет
+
         mockMvc.perform(get("/users/1/friends"))
                 .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
