@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,7 +20,8 @@ public class ErrorHandler {
     @ExceptionHandler({
             DuplicatedDataException.class,
             ValidationException.class,
-            ConditionsNotMetException.class
+            ConditionsNotMetException.class,
+            ConstraintViolationException.class
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleCustomExceptions(RuntimeException ex) {
@@ -42,15 +44,13 @@ public class ErrorHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, String> handleOtherExceptions(final Throwable e) {
         return Map.of(
-                "Произошла непредвиденная ошибка.",
-                "Внутренняя ошибка сервера."
+                "error", "Произошла непредвиденная ошибка."
         );
     }
 
     @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public  Map<String, String> handleNotFoundException(final NotFoundException e) {
+    public Map<String, String> handleNotFoundException(final NotFoundException e) {
         return Map.of("error", e.getMessage());
     }
-
 }

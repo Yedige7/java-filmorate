@@ -60,14 +60,7 @@ CREATE TABLE IF NOT EXISTS films_directors (
     film_id BIGINT NOT NULL,
     director_id BIGINT NOT NULL,
     PRIMARY KEY (film_id, director_id),
-    FOREIGN KEY(film_id) REFERENCES films(film_id),
-    FOREIGN KEY(director_id) REFERENCES directors(director_id)
+    FOREIGN KEY(film_id) REFERENCES films(film_id) ON DELETE CASCADE,
+    FOREIGN KEY(director_id) REFERENCES directors(director_id) ON DELETE CASCADE
 );
 
-INSERT INTO directors (director_id, name)
-VALUES
-    (1, 'Стенли Кубрик'),
-    (2, 'Квентин Тарантино'),
-    (3, 'Мартин Скорсезе');
-    (4, 'Джеймс Кэмерон');
-    (5, 'Джордж Лукас');

@@ -1,11 +1,13 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import jakarta.validation.constraints.Min;
 
 import java.util.Collection;
 import java.util.List;
@@ -58,7 +60,24 @@ public class FilmController {
     }
 
     @GetMapping("/directors/{directorId}")
-    public List<Film> getFilmsByDirector(@PathVariable Long directorId, @RequestParam(defaultValue = "likes") String sortBy, @RequestParam(defaultValue = "10") int count) {
-        return filmService.getFilmsByDirector(directorId, sortBy, count);
+    public List<Film> getFilmsByDirector(@PathVariable String directorId,
+                                         @RequestParam(defaultValue = "likes") String sortBy,
+                                         @RequestParam(defaultValue = "10") @Min(1) int count) {
+        log.info("Fetching films for directorId: {}, sortBy: {}, count: {}", directorId, sortBy, count);
+        try {
+            long parsedDirectorId = Long.parseLong(directorId);
+            if (parsedDirectorId < 1) {
+                throw new ValidationException("ID режиссёра должен быть положительным");
+            }
+
+            if (!"likes".equalsIgnoreCase(sortBy) && !"year".equalsIgnoreCase(sortBy)) {
+                throw new ValidationException("Параметр sortBy должен быть 'likes' или 'year'");
+            }
+
+            return filmService.getFilmsByDirector(parsedDirectorId, sortBy, count);
+        } catch (NumberFormatException e) {
+            log.warn("Invalid directorId format: {}", directorId);
+            throw new ValidationException("Неверный формат ID режиссёра: " + directorId);
+        }
     }
 }

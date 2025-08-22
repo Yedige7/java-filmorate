@@ -53,6 +53,8 @@ public class FilmDbStorage implements FilmStorage {
     private static final String FIND_DIRECTORS_BY_FILM_ID_QUERY = "SELECT d.director_id, d.name FROM directors d " +
             "JOIN films_directors fd ON d.director_id = fd.director_id " +
             "WHERE fd.film_id = ? ORDER BY d.director_id";
+    private static final String INSERT_FILM_DIRECTORS_QUERY = "INSERT INTO films_directors (film_id, director_id) VALUES (?, ?)";
+    private static final String DELETE_FILM_DIRECTORS_QUERY = "DELETE FROM films_directors WHERE film_id = ?";
 
     private final JdbcTemplate jdbcTemplate;
     private final MpaService mpaService;
@@ -87,9 +89,16 @@ public class FilmDbStorage implements FilmStorage {
         }, keyHolder);
 
         Long newId = keyHolder.getKey().longValue();
+        film.setId(newId);
+
         if (!film.getGenres().isEmpty()) {
             saveGenres(newId, film.getGenres());
         }
+
+        if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
+            saveDirectors(newId, film.getDirectors());
+        }
+
         return findById(newId).orElseThrow(() -> new RuntimeException("Фильм не найден после добавления"));
     }
 
@@ -111,6 +120,9 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public Collection<Film> findAll() {
         List<Film> films = jdbcTemplate.query(FIND_ALL_QUERY, new FilmMapper());
+        for (Film film : films) {
+            loadFilmDetails(film);
+        }
         log.info("Найдено фильмов: {}", films.size());
         return films;
     }
@@ -134,7 +146,27 @@ public class FilmDbStorage implements FilmStorage {
                 }
             });
         }
+    }
 
+    private void saveDirectors(Long filmId, Set<Director> directors) {
+        jdbcTemplate.update(DELETE_FILM_DIRECTORS_QUERY, filmId);
+
+        if (directors != null && !directors.isEmpty()) {
+            List<Director> directorList = new ArrayList<>(directors);
+            jdbcTemplate.batchUpdate(INSERT_FILM_DIRECTORS_QUERY, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    Director director = directorList.get(i);
+                    ps.setLong(1, filmId);
+                    ps.setLong(2, director.getId());
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return directorList.size();
+                }
+            });
+        }
     }
 
     private void updateGenres(Long filmId, Set<Genre> genres) {
@@ -150,18 +182,23 @@ public class FilmDbStorage implements FilmStorage {
         film.setMpa(mpa);
         int rowsUpdated = jdbcTemplate.update(UPDATE_QUERY, film.getName(), film.getDescription(), Date.valueOf(film.getReleaseDate()), (int) film.getDuration().toMinutes(), mpa.getId(), film.getId());
 
-
         if (rowsUpdated == 0) {
             throw new NotFoundException("Пользователь с id=" + film.getId() + " не найден");
         }
 
-
-        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+        if (film.getGenres() != null) {
             updateGenres(film.getId(), film.getGenres());
+        }
+
+        if (film.getDirectors() != null) {
+            saveDirectors(film.getId(), film.getDirectors());
         }
 
         List<Genre> genreList = jdbcTemplate.query(FIND_GENRES_QUERY, (rs, rowNum) -> new Genre(rs.getLong("genre_id"), rs.getString("name")), film.getId());
         film.setGenres(new LinkedHashSet<>(genreList));
+
+        List<Director> directorList = jdbcTemplate.query(FIND_DIRECTORS_BY_FILM_ID_QUERY, (rs, rowNum) -> new Director(rs.getLong("director_id"), rs.getString("name")), film.getId());
+        film.setDirectors(new LinkedHashSet<>(directorList));
 
         return film;
     }
@@ -170,18 +207,34 @@ public class FilmDbStorage implements FilmStorage {
     public Optional<Film> findById(Long id) {
         try {
             Film film = jdbcTemplate.queryForObject(FIND_FILMS_BY_JOIN_QUERY, new FilmMapper(), id);
-            List<Genre> genres = jdbcTemplate.query(FIND_GENRES_QUERY, (rs, rn) -> new Genre(rs.getLong("genre_id"), rs.getString("name")), id);
-            film.setGenres(new LinkedHashSet<>(genres));
-            return Optional.of(film);
-
+            if (film != null) {
+                loadFilmDetails(film);
+            }
+            return Optional.ofNullable(film);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
 
+    private void loadFilmDetails(Film film) {
+        if (film == null) return;
+
+        List<Genre> genres = jdbcTemplate.query(FIND_GENRES_QUERY, (rs, rn) ->
+                new Genre(rs.getLong("genre_id"), rs.getString("name")), film.getId());
+        film.setGenres(new LinkedHashSet<>(genres));
+
+        List<Director> directors = jdbcTemplate.query(FIND_DIRECTORS_BY_FILM_ID_QUERY, (rs, rn) ->
+                new Director(rs.getLong("director_id"), rs.getString("name")), film.getId());
+        film.setDirectors(new LinkedHashSet<>(directors));
+    }
+
     @Override
     public List<Film> getPopularFilms(int count) {
-        return jdbcTemplate.query(FIND_FILM_COUNT_QUERY, new FilmMapper(), count);
+        List<Film> films = jdbcTemplate.query(FIND_FILM_COUNT_QUERY, new FilmMapper(), count);
+        for (Film film : films) {
+            loadFilmDetails(film);
+        }
+        return films;
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy, int count) {
@@ -192,10 +245,7 @@ public class FilmDbStorage implements FilmStorage {
         String query = String.format(FIND_FILMS_BY_DIRECTOR_QUERY, orderBy);
         List<Film> films = jdbcTemplate.query(query, new FilmMapper(), directorId, count);
         for (Film film : films) {
-            List<Genre> genres = jdbcTemplate.query(FIND_GENRES_BY_FILM_ID_QUERY, (rs, rn) -> new Genre(rs.getLong("genre_id"), rs.getString("name")), film.getId());
-            film.setGenres(new LinkedHashSet<>(genres));
-            List<Director> directors = jdbcTemplate.query(FIND_DIRECTORS_BY_FILM_ID_QUERY, (rs, rn) -> new Director(rs.getLong("director_id"), rs.getString("name")), film.getId());
-            film.setDirectors(new LinkedHashSet<>(directors));
+            loadFilmDetails(film);
         }
         return films;
     }

@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.DirectorDbStorage;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -16,11 +18,13 @@ import java.util.List;
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserService userService;
+    private final DirectorDbStorage directorDbStorage;
 
     @Autowired
-    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage, UserService userService) {
+    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage, UserService userService, DirectorDbStorage directorDbStorage) {
         this.filmStorage = filmStorage;
         this.userService = userService;
+        this.directorDbStorage = directorDbStorage;
     }
 
     public Film create(Film film) {
@@ -56,6 +60,9 @@ public class FilmService {
     }
 
     public List<Film> getFilmsByDirector(Long directorId, String sortBy, int count) {
+        if (!directorDbStorage.findById(directorId).isPresent()) {
+            return Collections.emptyList();
+        }
         return filmStorage.getFilmsByDirector(directorId, sortBy, count);
     }
 }
