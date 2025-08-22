@@ -56,9 +56,10 @@ public class Film {
 
     private Set<Genre> genres = new LinkedHashSet<>();
 
+    private Set<Director> directors = new LinkedHashSet<>();
+
     @JsonProperty(value = "rate", access = JsonProperty.Access.READ_ONLY)
     public int getRate() {
         return likes != null ? likes.size() : 0;
     }
-
 }

@@ -65,4 +65,9 @@ public class InMemoryFilmStorage implements FilmStorage {
     public void addLike(Long filmId, Long userId) {
 
     }
+
+    @Override
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy, int count) {
+        return List.of();
+    }
 }

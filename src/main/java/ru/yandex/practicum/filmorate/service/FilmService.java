@@ -45,7 +45,6 @@ public class FilmService {
         getFilmOrThrow(filmId);
         userService.getUserOrThrow(userId);
         filmStorage.removeLike(filmId, userId);
-
     }
 
     public List<Film> getPopularFilms(int count) {
@@ -53,6 +52,10 @@ public class FilmService {
     }
 
     public Film getFilmOrThrow(Long id) {
-        return filmStorage.findById(id).orElseThrow(() -> new NotFoundException("Фильм c " + id + " не найден"));
+        return filmStorage.findById(id).orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy, int count) {
+        return filmStorage.getFilmsByDirector(directorId, sortBy, count);
     }
 }

@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.Mpa;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
+import java.util.LinkedHashSet;
 
 @Component
 public class FilmMapper implements RowMapper<Film> {
@@ -24,6 +25,7 @@ public class FilmMapper implements RowMapper<Film> {
         if (mpaId != null) {
             film.setMpa(new Mpa(mpaId, rs.getString("mpa_name")));
         }
+        film.setDirectors(new LinkedHashSet<>());
         return film;
     }
 }

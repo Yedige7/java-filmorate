@@ -27,7 +27,6 @@ public class FilmController {
         return filmService.findAll();
     }
 
-
     @PostMapping
     public Film create(@RequestBody @Valid Film film) {
         return filmService.create(film);
@@ -58,4 +57,8 @@ public class FilmController {
         return filmService.getFilmOrThrow(id);
     }
 
+    @GetMapping("/directors/{directorId}")
+    public List<Film> getFilmsByDirector(@PathVariable Long directorId, @RequestParam(defaultValue = "likes") String sortBy, @RequestParam(defaultValue = "10") int count) {
+        return filmService.getFilmsByDirector(directorId, sortBy, count);
+    }
 }
