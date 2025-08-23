@@ -138,4 +138,10 @@ public class UserDbStorage implements UserStorage {
     public List<User> getCommonFriends(Long userId, Long otherId) {
         return jdbcTemplate.query(FIND_COMMON_FRIEND_QUERY, new UserMapper(), userId, otherId);
     }
+
+    @Override
+    public void deleteById(Long userId) {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        jdbcTemplate.update(sql, userId);
+    }
 }

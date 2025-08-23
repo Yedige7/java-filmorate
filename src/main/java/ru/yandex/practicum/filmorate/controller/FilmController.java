@@ -1,5 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +61,7 @@ public class FilmController {
         return filmService.getFilmOrThrow(id);
     }
 
+<<<<<<< HEAD
     /**
      * Обрабатывает GET-запрос для получения списка общих с другом фильмов.
      * Эндпоинт: GET /films/common?userId={userId}&friendId={friendId}
@@ -73,5 +77,15 @@ public class FilmController {
         log.info("Получен запрос GET /films/common с параметрами userId={}, friendId={}", userId, friendId);
         // Делегируем выполнение бизнес-логики сервисному слою и возвращаем результат
         return filmService.getCommonFilms(userId, friendId);
+
+    @DeleteMapping("/{filmId}")
+    public ResponseEntity<Void> deleteById(@PathVariable Long filmId) {
+        log.info("Получен запрос DELETE /films/{}", filmId);
+        try {
+            filmService.deleteById(filmId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 }

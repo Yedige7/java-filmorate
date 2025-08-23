@@ -83,5 +83,10 @@ public class FilmService {
         log.info("Найдено {} общих фильмов для пользователей с ID: {} и {}", commonFilms.size(), userId, friendId);
 
         return commonFilms;
+
+    public void deleteById(Long filmId) {
+        getFilmOrThrow(filmId);
+        filmStorage.deleteById(filmId);
+        log.info("Фильм с id={} удален", filmId);
     }
 }
