@@ -166,4 +166,10 @@ public class FilmDbStorage implements FilmStorage {
     public List<Film> getPopularFilms(int count) {
         return jdbcTemplate.query(FIND_FILM_COUNT_QUERY, new FilmMapper(), count);
     }
+
+    @Override
+    public void deleteById(Long filmId) {
+        String sql = "DELETE FROM films WHERE film_id = ?";
+        jdbcTemplate.update(sql, filmId);
+    }
 }

@@ -52,6 +52,15 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
+    public void deleteById(Long filmId) {
+        if (films.remove(filmId) != null) {
+            log.info("Фильм с id={} удален из InMemory хранилища", filmId);
+        } else {
+            log.warn("Попытка удалить несуществующий фильм с id={} из InMemory хранилища", filmId);
+        }
+    }
+
+    @Override
     public void removeLike(Long filmId, Long userId) {
 
     }

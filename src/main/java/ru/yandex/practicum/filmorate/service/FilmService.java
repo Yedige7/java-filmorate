@@ -55,4 +55,10 @@ public class FilmService {
     public Film getFilmOrThrow(Long id) {
         return filmStorage.findById(id).orElseThrow(() -> new NotFoundException("Фильм c " + id + " не найден"));
     }
+
+    public void deleteById(Long filmId) {
+        getFilmOrThrow(filmId);
+        filmStorage.deleteById(filmId);
+        log.info("Фильм с id={} удален", filmId);
+    }
 }

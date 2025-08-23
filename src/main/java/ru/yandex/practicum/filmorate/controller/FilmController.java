@@ -1,5 +1,8 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,4 +61,14 @@ public class FilmController {
         return filmService.getFilmOrThrow(id);
     }
 
+    @DeleteMapping("/{filmId}")
+    public ResponseEntity<Void> deleteById(@PathVariable Long filmId) {
+        log.info("Получен запрос DELETE /films/{}", filmId);
+        try {
+            filmService.deleteById(filmId);
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (NotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
 }
