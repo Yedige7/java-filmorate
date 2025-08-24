@@ -21,4 +21,13 @@ public interface FilmStorage {
     List<Film> getPopularFilms(int count);
 
     void addLike(Long filmId, Long userId);
+
+    /**
+     * Получает список общих фильмов между двумя пользователями.
+     *
+     * @param userId   идентификатор первого пользователя
+     * @param friendId идентификатор второго пользователя
+     * @return список общих фильмов (объектов Film), отсортированный по популярности
+     */
+    List<Film> getCommonFilms(long userId, long friendId);
 }

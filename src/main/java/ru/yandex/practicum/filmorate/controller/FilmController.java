@@ -58,4 +58,20 @@ public class FilmController {
         return filmService.getFilmOrThrow(id);
     }
 
+    /**
+     * Обрабатывает GET-запрос для получения списка общих с другом фильмов.
+     * Эндпоинт: GET /films/common?userId={userId}&friendId={friendId}
+     *
+     * @param userId   идентификатор пользователя, переданный в параметрах запроса
+     * @param friendId идентификатор друга, переданный в параметрах запроса
+     * @return список общих фильмов, отсортированный по популярности (количеству лайков)
+     */
+    @GetMapping("/common")
+    public List<Film> getCommonFilms(@RequestParam long userId,
+                                     @RequestParam long friendId) {
+        // Логируем факт поступления запроса
+        log.info("Получен запрос GET /films/common с параметрами userId={}, friendId={}", userId, friendId);
+        // Делегируем выполнение бизнес-логики сервисному слою и возвращаем результат
+        return filmService.getCommonFilms(userId, friendId);
+    }
 }
