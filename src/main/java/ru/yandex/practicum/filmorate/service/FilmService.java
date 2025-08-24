@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
+import jakarta.validation.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -54,5 +55,33 @@ public class FilmService {
 
     public Film getFilmOrThrow(Long id) {
         return filmStorage.findById(id).orElseThrow(() -> new NotFoundException("Фильм c " + id + " не найден"));
+    }
+
+    /**
+     * Возвращает список общих с другом фильмов с сортировкой по их популярности.
+     * Проверяет валидность идентификаторов пользователей перед выполнением запроса к БД.
+     *
+     * @param userId   идентификатор пользователя, запрашивающего информацию
+     * @param friendId идентификатор пользователя, с которым происходит сравнение
+     * @return список общих фильмов (объектов Film), отсортированный по популярности
+     * @throws ValidationException если идентификаторы пользователей совпадают
+     */
+    public List<Film> getCommonFilms(long userId, long friendId) {
+        // Проверка: не совпадают ли идентификаторы пользователей
+        if (userId == friendId) {
+            log.warn("Запрос общих фильмов для одинаковых ID пользователей: {}", userId);
+            throw new ValidationException("Идентификаторы пользователя и друга не должны совпадать.");
+        }
+
+        // Проверка: существуют ли оба пользователя в базе данных.
+        userService.getUserOrThrow(userId);
+        userService.getUserOrThrow(friendId);
+
+        log.info("Поиск общих фильмов для пользователей с ID: {} и {}", userId, friendId);
+        // Делегируем выполнение основного запроса слою хранилища
+        List<Film> commonFilms = filmStorage.getCommonFilms(userId, friendId);
+        log.info("Найдено {} общих фильмов для пользователей с ID: {} и {}", commonFilms.size(), userId, friendId);
+
+        return commonFilms;
     }
 }
