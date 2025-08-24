@@ -76,7 +76,7 @@ public class FilmDbStorage implements FilmStorage {
         if (!film.getGenres().isEmpty()) {
             saveGenres(newId, film.getGenres());
         }
-        return findById(newId).orElseThrow(() -> new RuntimeException("Фильм не найден после добавления"));
+        return findById(newId).orElseThrow(() -> new NotFoundException("Фильм не найден после добавления"));
     }
 
     @Override
@@ -130,7 +130,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public Film update(Film film) {
-        Film existingFilm = findById(film.getId()).orElseThrow(() -> new RuntimeException("Фильм с id " + film.getId() + " не найден"));
+        Film existingFilm = findById(film.getId()).orElseThrow(() -> new NotFoundException("Фильм с id " + film.getId() + " не найден"));
 
         Mpa mpa = mpaService.getById(film.getMpa().getId());
         film.setMpa(mpa);
