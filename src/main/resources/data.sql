@@ -5,12 +5,16 @@ DELETE FROM friends;
 DELETE FROM films_genres;
 DELETE FROM genres;
 DELETE FROM likes;
--- 2. Удаляем все данные
+DELETE FROM review_likes;
+DELETE FROM review_dislikes;
 DELETE FROM users;
 DELETE FROM films;
--- 3. Сбрасываем автоинкремент для id
+DELETE FROM reviews;
+DELETE FROM events;
 ALTER TABLE users ALTER COLUMN USER_ID RESTART WITH 1;
 ALTER TABLE films ALTER COLUMN FILM_ID RESTART WITH 1;
+ALTER TABLE reviews ALTER COLUMN REVIEW_ID RESTART WITH 1;
+ALTER TABLE events ALTER COLUMN EVENT_ID RESTART WITH 1;
 
 -- 4. Включаем проверки внешних ключей обратно
 SET REFERENTIAL_INTEGRITY TRUE;
