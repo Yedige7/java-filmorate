@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.review.ReviewStorage;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 
 import java.util.List;
 
@@ -18,6 +21,7 @@ public class ReviewService {
     private final ReviewStorage reviewStorage;
     private final UserService userService; // Для проверки существования пользователей
     private final FilmService filmService; // Для проверки существования фильмов
+    private final EventService eventService; // Зависимость от ленты событий
 
     /**
      * Создает новый отзыв с предварительными проверками.
@@ -30,7 +34,17 @@ public class ReviewService {
         userService.getUserOrThrow(review.getUserId());
         // Проверяем существование фильма
         filmService.getFilmOrThrow(review.getFilmId());
-        return reviewStorage.create(review);
+
+        Review createdReview = reviewStorage.create(review);
+
+        eventService.addEvent(Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(createdReview.getUserId())
+                .eventType(EventType.REVIEW)
+                .operation(Operation.ADD)
+                .entityId(createdReview.getReviewId())
+                .build());
+        return createdReview;
     }
 
     /**
@@ -42,7 +56,17 @@ public class ReviewService {
     public Review update(Review review) {
         // Проверяем существование отзыва перед обновлением
         getreviewId(review.getReviewId());
-        return reviewStorage.update(review);
+
+        Review updatedReview = reviewStorage.update(review);
+
+        eventService.addEvent(Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(updatedReview.getUserId())
+                .eventType(EventType.REVIEW)
+                .operation(Operation.UPDATE)
+                .entityId(updatedReview.getReviewId())
+                .build());
+        return updatedReview;
     }
 
     /**
@@ -51,6 +75,16 @@ public class ReviewService {
      * @param id ID отзыва для удаления
      */
     public void delete(Long id) {
+        Review reviewToDelete = getreviewId(id);
+
+        eventService.addEvent(Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(reviewToDelete.getUserId())
+                .eventType(EventType.REVIEW)
+                .operation(Operation.REMOVE)
+                .entityId(id)
+                .build());
+
         reviewStorage.delete(id);
     }
 
