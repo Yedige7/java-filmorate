@@ -75,7 +75,8 @@ public class UserController {
         log.info("Получен запрос DELETE /users/{}", userId);
         userService.deleteById(userId);
     }
-  
+
+
     @GetMapping("/{id}/feed")
     public List<Event> getUserFeed(@PathVariable Long id) {
         return eventService.getFeedForUser(id);
