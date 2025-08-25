@@ -25,6 +25,7 @@ public class ErrorHandler {
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleCustomExceptions(RuntimeException ex) {
+        log.info("Handling custom exception: {}", ex.getMessage());
         return Map.of("error", ex.getMessage());
     }
 
@@ -34,27 +35,28 @@ public class ErrorHandler {
         Map<String, String> fieldErrors = new HashMap<>();
         ex.getBindingResult().getFieldErrors()
                 .forEach(error -> fieldErrors.put(error.getField(), error.getDefaultMessage()));
+        log.info("Validation failed: {}", fieldErrors);
         return Map.of(
                 "error", "Validation failed",
                 "details", fieldErrors
         );
     }
 
-    @ExceptionHandler(Throwable.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public Map<String, String> handleOtherExceptions(final Throwable e) {
-        log.error("Непредвиденная ошибка: [{}].", e.getClass().getName(), e);
-
-        return Map.of(
-                "error", "Произошла непредвиденная ошибка.",
-                "exception_class", e.getClass().getName(),
-                "message", e.getMessage()
-        );
-    }
-
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public  Map<String, String> handleNotFoundException(final NotFoundException e) {
+    public Map<String, String> handleNotFoundException(final NotFoundException e) {
+        log.info("Resource not found: {}", e.getMessage());
         return Map.of("error", e.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, String> handleOtherExceptions(final Exception e) {
+        log.error("Unexpected error: [{}]: {}", e.getClass().getName(), e.getMessage(), e);
+        return Map.of(
+                "error", "Internal server error",
+                "exception_class", e.getClass().getName(),
+                "message", e.getMessage() != null ? e.getMessage() : "No message available"
+        );
     }
 }

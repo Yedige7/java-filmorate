@@ -7,6 +7,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -78,5 +79,22 @@ public class InMemoryFilmStorage implements FilmStorage {
     @Override
     public List<Film> getCommonFilms(long userId, long friendId) {
         return List.of();
+    }
+
+    @Override
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        List<Film> filmsByDirector = films.values().stream()
+                .filter(film -> film.getDirectors() != null &&
+                        film.getDirectors().stream()
+                                .anyMatch(director -> director.getId().equals(directorId)))
+                .collect(Collectors.toList());
+
+        if ("year".equalsIgnoreCase(sortBy)) {
+            filmsByDirector.sort(Comparator.comparing(Film::getReleaseDate));
+        } else {
+            filmsByDirector.sort((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()));
+        }
+
+        return filmsByDirector;
     }
 }
