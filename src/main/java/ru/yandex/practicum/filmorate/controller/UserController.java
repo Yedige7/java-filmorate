@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,12 @@ public class UserController {
     public UserController(UserService userService, EventService eventService) {
         this.userService = userService;
         this.eventService = eventService;
+    }
+
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable Long id) {
+        log.info("Получен запрос GET /users/{}", id);
+        return userService.getUserOrThrow(id);
     }
 
     @GetMapping
@@ -61,6 +68,14 @@ public class UserController {
     public Collection<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
         return userService.getCommonFriends(id, otherId);
     }
+
+    @DeleteMapping("/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteById(@PathVariable Long userId) {
+        log.info("Получен запрос DELETE /users/{}", userId);
+        userService.deleteById(userId);
+    }
+
 
     @GetMapping("/{id}/feed")
     public List<Event> getUserFeed(@PathVariable Long id) {

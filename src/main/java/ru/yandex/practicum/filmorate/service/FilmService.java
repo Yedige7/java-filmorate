@@ -106,4 +106,10 @@ public class FilmService {
 
         return commonFilms;
     }
+
+    public void deleteById(Long filmId) {
+        getFilmOrThrow(filmId);
+        filmStorage.deleteById(filmId);
+        log.info("Фильм с id={} удален", filmId);
+    }
 }

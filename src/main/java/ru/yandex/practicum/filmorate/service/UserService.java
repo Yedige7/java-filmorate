@@ -85,4 +85,10 @@ public class UserService {
         getUserOrThrow(otherId);
         return userStorage.getCommonFriends(userId, otherId);
     }
+
+    public void deleteById(Long userId) {
+        getUserOrThrow(userId);
+        userStorage.deleteById(userId);
+        log.info("Пользователь с id={} удален", userId);
+    }
 }

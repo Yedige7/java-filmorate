@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,5 +74,12 @@ public class FilmController {
         log.info("Получен запрос GET /films/common с параметрами userId={}, friendId={}", userId, friendId);
         // Делегируем выполнение бизнес-логики сервисному слою и возвращаем результат
         return filmService.getCommonFilms(userId, friendId);
+    }
+
+    @DeleteMapping("/{filmId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteById(@PathVariable Long filmId) {
+        log.info("Получен запрос DELETE /films/{}", filmId);
+        filmService.deleteById(filmId);
     }
 }

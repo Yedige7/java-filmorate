@@ -30,4 +30,6 @@ public interface FilmStorage {
      * @return список общих фильмов (объектов Film), отсортированный по популярности
      */
     List<Film> getCommonFilms(long userId, long friendId);
+
+    void deleteById(Long filmId);
 }
