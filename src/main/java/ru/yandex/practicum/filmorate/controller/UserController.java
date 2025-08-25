@@ -5,10 +5,13 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.event.Event;
 
 import java.util.Collection;
+import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
+import ru.yandex.practicum.filmorate.service.EventService;
 import ru.yandex.practicum.filmorate.service.UserService;
 
 @Slf4j
@@ -17,10 +20,12 @@ import ru.yandex.practicum.filmorate.service.UserService;
 public class UserController {
 
     private final UserService userService;
+    private final EventService eventService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, EventService eventService) {
         this.userService = userService;
+        this.eventService = eventService;
     }
 
     @GetMapping("/{id}")
@@ -69,5 +74,10 @@ public class UserController {
     public void deleteById(@PathVariable Long userId) {
         log.info("Получен запрос DELETE /users/{}", userId);
         userService.deleteById(userId);
+    }
+  
+    @GetMapping("/{id}/feed")
+    public List<Event> getUserFeed(@PathVariable Long id) {
+        return eventService.getFeedForUser(id);
     }
 }
