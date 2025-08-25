@@ -195,6 +195,7 @@ public class FilmDbStorage implements FilmStorage {
             log.error("Ошибка базы данных в getCommonFilms: {}", e.getMessage());
             throw new RuntimeException("Ошибка при поиске общих фильмов", e);
         }
+    }
 
     public void deleteById(Long filmId) {
         String sql = "DELETE FROM films WHERE film_id = ?";

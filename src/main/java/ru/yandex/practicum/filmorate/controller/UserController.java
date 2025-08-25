@@ -1,8 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +21,12 @@ public class UserController {
     @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
+    }
+
+    @GetMapping("/{id}")
+    public User getUserById(@PathVariable Long id) {
+        log.info("Получен запрос GET /users/{}", id);
+        return userService.getUserOrThrow(id);
     }
 
     @GetMapping
@@ -61,13 +65,9 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteById(@PathVariable Long userId) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteById(@PathVariable Long userId) {
         log.info("Получен запрос DELETE /users/{}", userId);
-        try {
-            userService.deleteById(userId);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (NotFoundException e) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        userService.deleteById(userId);
     }
 }

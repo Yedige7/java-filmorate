@@ -46,7 +46,6 @@ public class FilmService {
         getFilmOrThrow(filmId);
         userService.getUserOrThrow(userId);
         filmStorage.removeLike(filmId, userId);
-
     }
 
     public List<Film> getPopularFilms(int count) {
@@ -83,6 +82,7 @@ public class FilmService {
         log.info("Найдено {} общих фильмов для пользователей с ID: {} и {}", commonFilms.size(), userId, friendId);
 
         return commonFilms;
+    }
 
     public void deleteById(Long filmId) {
         getFilmOrThrow(filmId);
