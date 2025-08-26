@@ -21,12 +21,17 @@ public class FilmService {
     private final FilmStorage filmStorage;
     private final UserService userService;
     private final EventService eventService;
+    private final DirectorService directorService;
 
     @Autowired
-    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage, UserService userService, EventService eventService) {
+    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
+                       UserService userService,
+                       EventService eventService,
+                       DirectorService directorService) {
         this.filmStorage = filmStorage;
         this.userService = userService;
         this.eventService = eventService;
+        this.directorService = directorService;
     }
 
     public Film create(Film film) {
@@ -124,5 +129,10 @@ public class FilmService {
         getFilmOrThrow(filmId);
         filmStorage.deleteById(filmId);
         log.info("Фильм с id={} удален", filmId);
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        directorService.findById(directorId); // проверка, что реж существует
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }

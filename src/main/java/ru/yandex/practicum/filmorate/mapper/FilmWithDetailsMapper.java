@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.mapper;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.model.Director;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -48,6 +49,24 @@ public class FilmWithDetailsMapper implements RowMapper<Film> {
             }
         }
         film.setGenres(genres);
+
+        // Режиссеры
+        Set<Director> directors = new HashSet<>();
+        String directorIdsStr = rs.getString("director_ids");
+        String directorNamesStr = rs.getString("director_names");
+        if (directorIdsStr != null && directorNamesStr != null && !directorIdsStr.isEmpty()) {
+            String[] ids = directorIdsStr.split(",");
+            String[] names = directorNamesStr.split(",");
+            for (int i = 0; i < Math.min(ids.length, names.length); i++) {
+                if (!ids[i].trim().isEmpty()) {
+                    Director director = new Director();
+                    director.setId(Long.parseLong(ids[i].trim()));
+                    director.setName(names[i].trim());
+                    directors.add(director);
+                }
+            }
+        }
+        film.setDirectors(directors);
 
         // Лайки
         String likesStr = rs.getString("user_likes");
