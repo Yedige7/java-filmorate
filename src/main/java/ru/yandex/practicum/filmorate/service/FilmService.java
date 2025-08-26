@@ -135,4 +135,12 @@ public class FilmService {
         directorService.findById(directorId); // проверка, что реж существует
         return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
+
+    public List<Film> searchFilms(String query, List<String> searchBy) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new IllegalArgumentException("Search query cannot be empty");
+        }
+
+        return filmStorage.searchFilms(query.trim(), searchBy);
+    }
 }

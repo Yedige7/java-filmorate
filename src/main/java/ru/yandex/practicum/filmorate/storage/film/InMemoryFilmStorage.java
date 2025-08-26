@@ -96,6 +96,44 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
+    public List<Film> searchFilms(String query, List<String> searchBy) {
+        if (query == null || query.trim().isEmpty()) {
+            log.info("Пустой запрос поиска");
+            return Collections.emptyList();
+        }
+
+        String searchQuery = query.toLowerCase().trim();
+        log.info("Поиск фильмов по запросу: '{}' с параметрами: {}", searchQuery, searchBy);
+
+        boolean searchByTitle = searchBy.contains("title");
+        boolean searchByDirector = searchBy.contains("director");
+
+        if (!searchByTitle && !searchByDirector) {
+            throw new IllegalArgumentException("Invalid search parameters: " + searchBy);
+        }
+
+        List<Film> foundFilms = films.values().stream()
+                .filter(film -> {
+                    boolean matches = false;
+                    if (searchByTitle && film.getName() != null &&
+                            film.getName().toLowerCase().contains(searchQuery)) {
+                        matches = true;
+                    }
+                    if (!matches && searchByDirector && film.getDirectors() != null) {
+                        matches = film.getDirectors().stream()
+                                .anyMatch(director -> director.getName() != null &&
+                                        director.getName().toLowerCase().contains(searchQuery));
+                    }
+                    return matches;
+                })
+                .sorted((f1, f2) -> Integer.compare(f2.getLikes().size(), f1.getLikes().size()))
+                .collect(Collectors.toList());
+
+        log.info("Найдено фильмов: {}", foundFilms.size());
+        return foundFilms;
+    }
+
+    @Override
     public List<Film> getCommonFilms(long userId, long friendId) {
         return List.of();
     }

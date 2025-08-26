@@ -49,6 +49,29 @@ public class FilmDbStorage implements FilmStorage {
     private static final String INSERT_FILMS_DIRECTORS_QUERY = "INSERT INTO films_directors (film_id, director_id) VALUES (?, ?)";
     private static final String DELETE_QUERY_FROM_FILMS_DIRECTORS = "DELETE FROM films_directors WHERE film_id = ?";
     private static final String FIND_DIRECTORS_BY_FILM_ID_QUERY = "SELECT d.director_id, d.name FROM directors d " + "JOIN films_directors fd ON d.director_id = fd.director_id " + "WHERE fd.film_id = ? ORDER BY d.director_id";
+    private static final String SEARCH_FILMS_BY_TITLE_QUERY = "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, " +
+            "m.mpa_id, m.name AS mpa_name " +
+            "FROM films f " +
+            "LEFT JOIN mpa m ON f.mpa_id = m.mpa_id " +
+            "WHERE LOWER(f.name) LIKE LOWER(?) " +
+            "ORDER BY (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.film_id) DESC";
+    private static final String SEARCH_FILMS_BY_DIRECTOR_QUERY = "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, " +
+            "m.mpa_id, m.name AS mpa_name " +
+            "FROM films f " +
+            "LEFT JOIN mpa m ON f.mpa_id = m.mpa_id " +
+            "JOIN films_directors fd ON f.film_id = fd.film_id " +
+            "JOIN directors d ON fd.director_id = d.director_id " +
+            "WHERE LOWER(d.name) LIKE LOWER(?) " +
+            "ORDER BY (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.film_id) DESC";
+
+    private static final String SEARCH_FILMS_BY_TITLE_AND_DIRECTOR_QUERY = "SELECT f.film_id, f.name, f.description, f.release_date, f.duration, " +
+            "m.mpa_id, m.name AS mpa_name " +
+            "FROM films f " +
+            "LEFT JOIN mpa m ON f.mpa_id = m.mpa_id " +
+            "LEFT JOIN films_directors fd ON f.film_id = fd.film_id " +
+            "LEFT JOIN directors d ON fd.director_id = d.director_id " +
+            "WHERE LOWER(f.name) LIKE LOWER(?) OR LOWER(d.name) LIKE LOWER(?) " +
+            "ORDER BY (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.film_id) DESC";
 
     private final JdbcTemplate jdbcTemplate;
     private final MpaService mpaService;
@@ -387,5 +410,49 @@ public class FilmDbStorage implements FilmStorage {
                     directorId, sortBy, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch films by director", e);
         }
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, List<String> searchBy) {
+        if (query == null || query.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String searchPattern = "%" + query.toLowerCase() + "%";
+        List<Film> films;
+
+        if (searchBy.contains("title") && searchBy.contains("director")) {
+            // Поиск и по названию, и по режиссеру
+            films = jdbcTemplate.query(SEARCH_FILMS_BY_TITLE_AND_DIRECTOR_QUERY,
+                    new FilmMapper(), searchPattern, searchPattern);
+        } else if (searchBy.contains("director")) {
+            // Поиск только по режиссеру
+            films = jdbcTemplate.query(SEARCH_FILMS_BY_DIRECTOR_QUERY,
+                    new FilmMapper(), searchPattern);
+        } else if (searchBy.contains("title")) {
+            // Поиск только по названию
+            films = jdbcTemplate.query(SEARCH_FILMS_BY_TITLE_QUERY,
+                    new FilmMapper(), searchPattern);
+        } else {
+            throw new IllegalArgumentException("Invalid search parameters: " + searchBy);
+        }
+
+        // Загружаем дополнительные данные для каждого фильма
+        for (Film film : films) {
+            // Загрузка жанров
+            List<Genre> genres = jdbcTemplate.query(FIND_GENRES_BY_FILM_ID_QUERY,
+                    (rs, rn) -> new Genre(rs.getLong("genre_id"), rs.getString("name")),
+                    film.getId());
+            film.setGenres(new LinkedHashSet<>(genres));
+
+            // Загрузка режиссеров
+            List<Director> directors = jdbcTemplate.query(FIND_DIRECTORS_BY_FILM_ID_QUERY,
+                    (rs, rn) -> new Director(rs.getLong("director_id"), rs.getString("name")),
+                    film.getId());
+            film.setDirectors(new LinkedHashSet<>(directors));
+        }
+
+        log.info("Найдено фильмов по запросу '{}' с параметрами {}: {}", query, searchBy, films.size());
+        return films;
     }
 }
