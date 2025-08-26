@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
@@ -64,4 +65,9 @@ public class UserService {
     }
 
 
+    public Collection<Film> getRecommendations(Long id) {
+        getUserOrThrow(id);
+
+        return userStorage.getRecommendations(id);
+    }
 }

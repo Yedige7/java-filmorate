@@ -2,6 +2,9 @@ package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -9,10 +12,12 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
-import java.sql.Date;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -36,7 +41,34 @@ public class UserDbStorage implements UserStorage {
             "JOIN friends f2 ON f2.friend_id = u.user_id " +
             "WHERE f1.user_id = ? AND " +
             "f2.user_id = ?";
+    private static final String FIND_CANDIDATE_FILM_IDS = """
+            SELECT l.film_id
+            FROM likes l
+            WHERE l.user_id = ?                                   -- фильмы соседа
+              AND l.film_id NOT IN (SELECT film_id FROM likes
+                                     WHERE user_id = ?)           -- которых у меня нет
+            GROUP BY l.film_id
+            ORDER BY COUNT(*) DESC
+            """;
+
+    private static final String FIND_TOP_NEIGHBOR = """
+            SELECT l.user_id AS neighbor_id
+            FROM likes l
+            WHERE l.user_id <> ?
+              AND l.film_id IN (SELECT film_id FROM likes WHERE user_id = ?)
+            GROUP BY l.user_id
+            ORDER BY COUNT(*) DESC
+            LIMIT 1
+            """;
+    private static final String FIND_COUNT_LIKES = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
     private final JdbcTemplate jdbcTemplate;
+    private FilmStorage filmStorage;
+
+    @Autowired
+    public UserDbStorage(@Qualifier("filmDbStorage") FilmStorage filmStorage, JdbcTemplate jdbcTemplate) {
+        this.filmStorage = filmStorage;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
     public Collection<User> findAll() {
@@ -44,7 +76,6 @@ public class UserDbStorage implements UserStorage {
     }
 
     public boolean emailExists(String email) {
-
         Integer count = jdbcTemplate.queryForObject(FIND_BY_EMAIL_QUERY, Integer.class, email);
         return count != null && count > 0;
     }
@@ -97,7 +128,7 @@ public class UserDbStorage implements UserStorage {
                     FIND_BY_USER_ID_QUERY, new UserMapper(), id
             );
             return Optional.ofNullable(user);
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
@@ -137,5 +168,54 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<User> getCommonFriends(Long userId, Long otherId) {
         return jdbcTemplate.query(FIND_COMMON_FRIEND_QUERY, new UserMapper(), userId, otherId);
+    }
+
+    public boolean likesExists(Long userId) {
+        Integer existCounter = jdbcTemplate.queryForObject(FIND_COUNT_LIKES, Integer.class, userId);
+        return existCounter != null && existCounter > 0;
+    }
+
+    @Override
+    public Collection<Film> getRecommendations(Long id) {
+        try {
+            if (!likesExists(id)) {
+                return Collections.emptyList();
+            }
+
+            Long topNeighborId;
+            try {
+                topNeighborId = jdbcTemplate.queryForObject(
+                        FIND_TOP_NEIGHBOR, new Object[]{id, id}, Long.class
+                );
+            } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+                return Collections.emptyList();
+            }
+
+            if (topNeighborId == null) {
+                return Collections.emptyList();
+            }
+
+            List<Long> candidateIds = jdbcTemplate.queryForList(
+                    FIND_CANDIDATE_FILM_IDS, Long.class, topNeighborId, id
+            );
+            if (candidateIds.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            List<Film> recs = new ArrayList<>(candidateIds.size());
+            for (Long filmId : candidateIds) {
+                try {
+                    Optional<Film> maybe = filmStorage.findById(filmId);
+                    maybe.ifPresent(recs::add);
+                } catch (Exception ex) {
+                    log.warn("Рекомендация: filmId={} findById кинул {} — пропускаю", filmId, ex.getClass().getSimpleName());
+                }
+            }
+            return recs;
+
+        } catch (org.springframework.dao.DataAccessException e) {
+            log.error("DB error in getRecommendations(userId={}): {}", id, e.getMessage(), e);
+            throw new RuntimeException("Ошибка при поиске рекомендаций фильмов", e);
+        }
     }
 }
