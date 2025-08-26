@@ -7,9 +7,6 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
-import ru.yandex.practicum.filmorate.model.event.Event;
-import ru.yandex.practicum.filmorate.model.event.EventType;
-import ru.yandex.practicum.filmorate.model.event.Operation;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,12 +15,10 @@ import java.util.List;
 @Service
 public class UserService {
     private final UserStorage userStorage;
-    private final EventService eventService;
 
     @Autowired
-    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, EventService eventService) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage) {
         this.userStorage = userStorage;
-        this.eventService = eventService;
     }
 
     public Collection<User> findAll() {
@@ -44,15 +39,6 @@ public class UserService {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         userStorage.addFriend(userId, friendId);
-
-        Event event = Event.builder()
-                .timestamp(System.currentTimeMillis())
-                .userId(userId)
-                .eventType(EventType.FRIEND)
-                .operation(Operation.ADD)
-                .entityId(friendId)
-                .build();
-        eventService.addEvent(event);
     }
 
     public User getUserOrThrow(Long id) {
@@ -64,15 +50,6 @@ public class UserService {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         userStorage.removeFriend(userId, friendId);
-
-        Event event = Event.builder()
-                .timestamp(System.currentTimeMillis())
-                .userId(userId)
-                .eventType(EventType.FRIEND)
-                .operation(Operation.REMOVE)
-                .entityId(friendId)
-                .build();
-        eventService.addEvent(event);
     }
 
     public List<User> getFriends(Long userId) {
@@ -86,9 +63,5 @@ public class UserService {
         return userStorage.getCommonFriends(userId, otherId);
     }
 
-    public void deleteById(Long userId) {
-        getUserOrThrow(userId);
-        userStorage.deleteById(userId);
-        log.info("Пользователь с id={} удален", userId);
-    }
+
 }

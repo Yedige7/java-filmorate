@@ -61,7 +61,4 @@ public class Film {
         return likes != null ? likes.size() : 0;
     }
 
-    private Set<Director> directors = new LinkedHashSet<>();
-
-
 }
