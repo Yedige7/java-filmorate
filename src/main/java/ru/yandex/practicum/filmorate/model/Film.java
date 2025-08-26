@@ -30,7 +30,7 @@ import java.util.Set;
 @EqualsAndHashCode(of = {"name"})
 @AllArgsConstructor
 @NoArgsConstructor
-public class Film {
+public class  Film {
 
     private Long id;
 

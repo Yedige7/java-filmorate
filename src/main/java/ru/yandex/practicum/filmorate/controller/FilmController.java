@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -82,6 +83,26 @@ public class FilmController {
         log.info("Получен запрос DELETE /films/{}", filmId);
         filmService.deleteById(filmId);
     }
+
+    @GetMapping("/search")
+    public List<Film> searchFilms(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "title") String by) {
+
+        List<String> searchBy = Arrays.asList(by.split(","));
+        validateSearchParameters(searchBy);
+
+        return filmService.searchFilms(query, searchBy);
+    }
+
+    private void validateSearchParameters(List<String> searchBy) {
+        for (String param : searchBy) {
+            if (!param.equals("title") && !param.equals("director")) {
+                throw new IllegalArgumentException("Parameter 'by' can only contain 'title' and/or 'director'");
+            }
+        }
+    }
+
 
     @GetMapping("/director/{directorId}")
     @ResponseStatus(HttpStatus.OK)
