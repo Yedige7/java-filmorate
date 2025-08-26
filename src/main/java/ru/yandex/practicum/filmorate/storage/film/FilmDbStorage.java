@@ -16,10 +16,14 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.service.GenreService;
 import ru.yandex.practicum.filmorate.service.MpaService;
+import ru.yandex.practicum.filmorate.storage.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.MpaDbStorage;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +48,9 @@ public class FilmDbStorage implements FilmStorage {
     private final MpaService mpaService;
     private final GenreService genreService;
     private final FilmWithDetailsMapper filmWithDetailsMapper;
+    private final GenreDbStorage genreDbStorage;
+    private final MpaDbStorage mpaDbStorage;
+
 
     @Override
     public Film create(Film film) {
@@ -166,8 +173,94 @@ public class FilmDbStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopularFilms(int count) {
-        return jdbcTemplate.query(FIND_FILM_COUNT_QUERY, new FilmMapper(), count);
+    public List<Film> getPopularFilms(int count, Long genreId, Integer year) {
+        try {
+            log.debug("getPopularFilms called with count={}, genreId={}, year={}", count, genreId, year);
+
+            StringBuilder sql = new StringBuilder("""
+                    SELECT\s
+                        f.film_id,\s
+                        f.name,\s
+                        f.description,\s
+                        f.release_date,\s
+                        f.duration,\s
+                        f.mpa_id,
+                        m.name as mpa_name,
+                        COUNT(l.user_id) AS likes_count
+                    FROM films f
+                    LEFT JOIN likes l ON f.film_id = l.film_id
+                    LEFT JOIN mpa m ON f.mpa_id = m.mpa_id
+                   \s""");
+
+            List<Object> params = new ArrayList<>();
+
+
+            if (genreId != null && genreId > 0) {
+                sql.append(" INNER JOIN films_genres fg ON f.film_id = fg.film_id");
+            }
+
+            sql.append(" WHERE 1=1");
+
+            // Фильтр по жанру
+            if (genreId != null && genreId > 0) {
+                sql.append(" AND fg.genre_id = ?");
+                params.add(genreId);
+            }
+
+            // Фильтр по году
+            if (year != null && year > 0) {
+                sql.append(" AND EXTRACT(YEAR FROM f.release_date) = ?");
+                params.add(year);
+            }
+
+            sql.append(" GROUP BY f.film_id, f.name, f.description, f.release_date, f.duration, f.mpa_id, m.name");
+            sql.append(" ORDER BY likes_count DESC, f.film_id ASC");
+
+
+            sql.append(" LIMIT ?");
+            params.add(count);
+
+            log.debug("Executing SQL: {}", sql.toString());
+            log.debug("Params: {}", params);
+
+            List<Film> result = jdbcTemplate.query(sql.toString(), this::mapRowToFilm, params.toArray());
+
+            log.debug("Successfully found {} films", result.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("Database error details:", e);
+            throw new RuntimeException("Ошибка базы данных: " + e.getMessage(), e);
+        }
+    }
+
+    private Film mapRowToFilm(ResultSet rs, int rowNum) throws SQLException {
+        Film film = new Film();
+        film.setId(rs.getLong("film_id"));
+        film.setName(rs.getString("name"));
+        film.setDescription(rs.getString("description"));
+
+        java.sql.Date releaseDate = rs.getDate("release_date");
+        if (releaseDate != null) {
+            film.setReleaseDate(releaseDate.toLocalDate());
+        }
+
+        long duration = rs.getLong("duration");
+        if (!rs.wasNull()) {
+            film.setDuration(Duration.ofMinutes(duration));
+        }
+
+        if (rs.getObject("mpa_id") != null) {
+            Mpa mpa = new Mpa();
+            mpa.setId(rs.getLong("mpa_id"));
+            mpa.setName(rs.getString("mpa_name"));
+            film.setMpa(mpa);
+        }
+
+        film.setLikes(new HashSet<>());
+        film.setGenres(new LinkedHashSet<>());
+
+        return film;
     }
 
     @Override
