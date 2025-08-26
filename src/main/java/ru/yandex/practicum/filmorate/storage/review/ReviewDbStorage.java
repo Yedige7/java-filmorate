@@ -46,7 +46,7 @@ public class ReviewDbStorage implements ReviewStorage {
         parameters.put("is_positive", review.getIsPositive());
         parameters.put("user_id", review.getUserId());
         parameters.put("film_id", review.getFilmId());
-        parameters.put("useful", 0); // Начальный рейтинг полезности
+     //   parameters.put("useful", 0); УБРАЛА, тк оно должно вычисляться только при чтении из базы, иначе падают тесты
 
         // Выполняем вставку и получаем сгенерированный ID
         Long reviewId = simpleJdbcInsert.executeAndReturnKey(parameters).longValue();

@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.model.event.Event;
+import ru.yandex.practicum.filmorate.model.event.EventType;
+import ru.yandex.practicum.filmorate.model.event.Operation;
 
 import java.util.Collection;
 import java.util.List;
@@ -17,11 +20,18 @@ import java.util.List;
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserService userService;
+    private final EventService eventService;
+    private final DirectorService directorService;
 
     @Autowired
-    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage, UserService userService) {
+    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
+                       UserService userService,
+                       EventService eventService,
+                       DirectorService directorService) {
         this.filmStorage = filmStorage;
         this.userService = userService;
+        this.eventService = eventService;
+        this.directorService = directorService;
     }
 
     public Film create(Film film) {
@@ -40,6 +50,15 @@ public class FilmService {
         getFilmOrThrow(filmId);
         userService.getUserOrThrow(userId);
         filmStorage.addLike(filmId, userId);
+
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(userId)
+                .eventType(EventType.LIKE)
+                .operation(Operation.ADD)
+                .entityId(filmId)
+                .build();
+        eventService.addEvent(event);
     }
 
     public void removeLike(Long filmId, Long userId) {
@@ -47,6 +66,14 @@ public class FilmService {
         userService.getUserOrThrow(userId);
         filmStorage.removeLike(filmId, userId);
 
+        Event event = Event.builder()
+                .timestamp(System.currentTimeMillis())
+                .userId(userId)
+                .eventType(EventType.LIKE)
+                .operation(Operation.REMOVE)
+                .entityId(filmId)
+                .build();
+        eventService.addEvent(event);
     }
 
     public List<Film> getPopularFilms(int count) {
@@ -83,5 +110,16 @@ public class FilmService {
         log.info("Найдено {} общих фильмов для пользователей с ID: {} и {}", commonFilms.size(), userId, friendId);
 
         return commonFilms;
+    }
+
+    public void deleteById(Long filmId) {
+        getFilmOrThrow(filmId);
+        filmStorage.deleteById(filmId);
+        log.info("Фильм с id={} удален", filmId);
+    }
+
+    public List<Film> getFilmsByDirector(Long directorId, String sortBy) {
+        directorService.findById(directorId); // проверка, что реж существует
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 }

@@ -218,4 +218,10 @@ public class UserDbStorage implements UserStorage {
             throw new RuntimeException("Ошибка при поиске рекомендаций фильмов", e);
         }
     }
+
+    @Override
+    public void deleteById(Long userId) {
+        String sql = "DELETE FROM users WHERE user_id = ?";
+        jdbcTemplate.update(sql, userId);
+    }
 }
