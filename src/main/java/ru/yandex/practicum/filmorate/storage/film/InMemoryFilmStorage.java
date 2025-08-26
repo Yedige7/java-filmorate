@@ -67,8 +67,27 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public List<Film> getPopularFilms(int count) {
-        return null;
+    public List<Film> getPopularFilms(int count, Long genreId, Integer year) {
+        List<Film> result = new ArrayList<>();
+
+        for (Film film : films.values()) {
+            if (film != null) {
+                result.add(film);
+            }
+        }
+
+        Collections.sort(result, new Comparator<Film>() {
+            public int compare(Film f1, Film f2) {
+                int likes1 = f1.getLikes() != null ? f1.getLikes().size() : 0;
+                int likes2 = f2.getLikes() != null ? f2.getLikes().size() : 0;
+                return Integer.compare(likes2, likes1);
+            }
+        });
+
+        if (count > 0 && count < result.size()) {
+            return result.subList(0, count);
+        }
+        return result;
     }
 
     @Override

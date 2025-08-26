@@ -5,6 +5,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Genre;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,5 +29,33 @@ public class GenreDbStorage {
                 new Genre(rs.getLong("genre_id"), rs.getString("name")), id
         );
         return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.getFirst());
+    }
+
+    /**
+     * Получает все жанры для указанного фильма
+     *
+     * @param filmId идентификатор фильма
+     * @return список жанров, связанных с фильмом
+     */
+    public List<Genre> getGenresByFilmId(long filmId) {
+        String sql = """
+                    SELECT g.genre_id, g.name\s
+                    FROM genres g
+                    JOIN film_genres fg ON g.genre_id = fg.genre_id
+                    WHERE fg.film_id = ?
+                    ORDER BY g.genre_id
+               \s""";
+
+        return jdbcTemplate.query(sql, this::mapRowToGenre, filmId);
+    }
+
+    /**
+     * Маппит строку результата в объект Genre
+     */
+    private Genre mapRowToGenre(ResultSet rs, int rowNum) throws SQLException {
+        return new Genre(
+                rs.getLong("genre_id"),
+                rs.getString("name")
+        );
     }
 }

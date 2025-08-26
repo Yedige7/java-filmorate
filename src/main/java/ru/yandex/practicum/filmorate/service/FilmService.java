@@ -76,8 +76,21 @@ public class FilmService {
         eventService.addEvent(event);
     }
 
-    public List<Film> getPopularFilms(int count) {
-        return filmStorage.getPopularFilms(count);
+    public List<Film> getPopularFilms(int count, Long genreId, Integer year) {
+        log.debug("Получение популярных фильмов: count={}, genreId={}, year={}", count, genreId, year);
+
+        // Валидация параметров
+        if (count <= 0) {
+            throw new ValidationException("Count должен быть положительным числом");
+        }
+        if (genreId != null && genreId <= 0) {
+            throw new ValidationException("GenreId должен быть положительным числом");
+        }
+        if (year != null && (year < 1895 || year > 2100)) {
+            throw new ValidationException("Year должен быть в диапазоне 1895-2100");
+        }
+
+        return filmStorage.getPopularFilms(count, genreId, year);
     }
 
     public Film getFilmOrThrow(Long id) {
