@@ -93,6 +93,7 @@ public class UserService {
 
         return userStorage.getRecommendations(id);
     }
+
     public void deleteById(Long userId) {
         getUserOrThrow(userId);
         userStorage.deleteById(userId);
