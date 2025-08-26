@@ -96,7 +96,7 @@ public class UserDbStorage implements UserStorage {
             User user = jdbcTemplate.queryForObject(
                     FIND_BY_USER_ID_QUERY, new UserMapper(), id
             );
-            return Optional.ofNullable(user);
+            return Optional.of(user);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return Optional.empty();
         }
@@ -137,11 +137,5 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<User> getCommonFriends(Long userId, Long otherId) {
         return jdbcTemplate.query(FIND_COMMON_FRIEND_QUERY, new UserMapper(), userId, otherId);
-    }
-
-    @Override
-    public void deleteById(Long userId) {
-        String sql = "DELETE FROM users WHERE user_id = ?";
-        jdbcTemplate.update(sql, userId);
     }
 }

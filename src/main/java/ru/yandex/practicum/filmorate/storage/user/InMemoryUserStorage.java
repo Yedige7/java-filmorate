@@ -67,15 +67,6 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
-    public void deleteById(Long userId) {
-        if (users.remove(userId) != null) {
-            log.info("Пользователь с id={} удален из InMemory хранилища", userId);
-        } else {
-            log.warn("Попытка удалить несуществующего пользователя с id={} из InMemory хранилища", userId);
-        }
-    }
-
-    @Override
     public void addFriend(Long userId, Long friendId) {
 
     }
