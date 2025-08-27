@@ -49,15 +49,6 @@ public class UserService {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
         userStorage.addFriend(userId, friendId);
-
-        Event event = Event.builder()
-                .timestamp(System.currentTimeMillis())
-                .userId(userId)
-                .eventType(EventType.FRIEND)
-                .operation(Operation.ADD)
-                .entityId(friendId)
-                .build();
-        eventService.addEvent(event);
     }
 
     public User getUserOrThrow(Long id) {
