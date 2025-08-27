@@ -6,8 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
 
 import java.time.LocalDate;
@@ -21,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import({UserDbStorage.class})
 class FilmorateApplicationTests {
 
+    @MockBean(name = "filmDbStorage")
+    private FilmStorage filmStorage;
     private final UserDbStorage userStorage;
 
     @BeforeEach
