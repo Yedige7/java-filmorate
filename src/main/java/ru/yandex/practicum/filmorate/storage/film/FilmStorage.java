@@ -18,7 +18,17 @@ public interface FilmStorage {
 
     void removeLike(Long filmId, Long userId);
 
-    List<Film> getPopularFilms(int count);
+    /**
+     * Получает список популярных фильмов с возможностью фильтрации
+     *
+     * @param count   максимальное количество возвращаемых фильмов
+     * @param genreId идентификатор жанра для фильтрации (может быть null)
+     * @param year    год выпуска для фильтрации (может быть null)
+     * @return список фильмов, отсортированный по убыванию популярности (количества лайков)
+     * @throws IllegalArgumentException если передан неверный genreId или year
+     */
+    List<Film> getPopularFilms(int count, Long genreId, Integer year);
+
 
     void addLike(Long filmId, Long userId);
 
@@ -32,6 +42,8 @@ public interface FilmStorage {
     List<Film> getCommonFilms(long userId, long friendId);
 
     void deleteById(Long filmId);
+
+    List<Film> searchFilms(String query, List<String> searchBy);
 
     List<Film> getFilmsByDirector(Long directorId, String sortBy);
 }

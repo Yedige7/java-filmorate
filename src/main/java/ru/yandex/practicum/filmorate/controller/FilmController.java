@@ -7,7 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -49,9 +53,25 @@ public class FilmController {
         filmService.removeLike(id, userId);
     }
 
+
+    /**
+     * GET /films/popular
+     * Возвращает список самых популярных фильмов с возможностью фильтрации по жанру и году
+     *
+     * @param count   количество возвращаемых фильмов (по умолчанию 10, min=1, max=2000)
+     * @param genreId идентификатор жанра для фильтрации (опционально)
+     * @param year    год выпуска для фильтрации (опционально, min=1895, max=2100)
+     * @return список фильмов, отсортированный по убыванию количества лайков
+     */
     @GetMapping("/popular")
-    public List<Film> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
-        return filmService.getPopularFilms(count);
+    public List<Film> getPopularFilms(
+            @RequestParam(defaultValue = "10") @Min(1) @Max(2000) int count,
+            @RequestParam(required = false) @Positive Long genreId,
+            @RequestParam(required = false) @Min(1895) @Max(2100) Integer year) {
+
+        log.debug("Запрос популярных фильмов: count={}, genreId={}, year={}", count, genreId, year);
+
+        return filmService.getPopularFilms(count, genreId, year);
     }
 
     @GetMapping("/{id}")
@@ -82,6 +102,26 @@ public class FilmController {
         log.info("Получен запрос DELETE /films/{}", filmId);
         filmService.deleteById(filmId);
     }
+
+    @GetMapping("/search")
+    public List<Film> searchFilms(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "title") String by) {
+
+        List<String> searchBy = Arrays.asList(by.split(","));
+        validateSearchParameters(searchBy);
+
+        return filmService.searchFilms(query, searchBy);
+    }
+
+    private void validateSearchParameters(List<String> searchBy) {
+        for (String param : searchBy) {
+            if (!param.equals("title") && !param.equals("director")) {
+                throw new IllegalArgumentException("Parameter 'by' can only contain 'title' and/or 'director'");
+            }
+        }
+    }
+
 
     @GetMapping("/director/{directorId}")
     @ResponseStatus(HttpStatus.OK)
