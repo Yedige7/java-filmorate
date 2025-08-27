@@ -179,8 +179,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Collection<Film> getRecommendations(Long id) {
-        String findMostSimilarUserSql = "" +
-                "SELECT l2.user_id " +
+        String findMostSimilarUserSql = "SELECT l2.user_id " +
                 "FROM likes AS l1 " +
                 "JOIN likes AS l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
                 "WHERE l1.user_id = ? " +
@@ -196,8 +195,7 @@ public class UserDbStorage implements UserStorage {
 
         Long similarUserId = similarUserIds.get(0);
 
-        String recommendFilmsSql = "" +
-                "SELECT film_id FROM likes WHERE user_id = ? " +
+        String recommendFilmsSql = "SELECT film_id FROM likes WHERE user_id = ? " +
                 "EXCEPT " +
                 "SELECT film_id FROM likes WHERE user_id = ?";
 

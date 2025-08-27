@@ -205,7 +205,7 @@ public class FilmDbStorage implements FilmStorage {
         }
 
 
-            // Обновляем жанры, если поле в запросе присутствует
+        // Обновляем жанры, если поле в запросе присутствует
         if (film.getGenres() != null) {
             updateGenres(film.getId(), film.getGenres());
         } else {
@@ -213,7 +213,7 @@ public class FilmDbStorage implements FilmStorage {
             updateGenres(film.getId(), new HashSet<>());
         }
 
-            // Аналогично для режиссеров
+        // Аналогично для режиссеров
         if (film.getDirectors() != null) {
             updateDirectors(film.getId(), film.getDirectors());
         } else {

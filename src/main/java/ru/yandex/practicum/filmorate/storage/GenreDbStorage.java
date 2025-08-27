@@ -28,7 +28,7 @@ public class GenreDbStorage {
         List<Genre> list = jdbcTemplate.query(FIND_BY_GENRE_QUERY, (rs, rowNum) ->
                 new Genre(rs.getLong("genre_id"), rs.getString("name")), id
         );
-        return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.get(0));
+        return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.getFirst());
     }
 
     /**

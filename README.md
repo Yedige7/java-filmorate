@@ -21,7 +21,7 @@ Template repository for Filmorate project.
 
 ```
 
-## ️ Таблицы 
+## ️ Таблицы
 
 - **USERS** — пользователи сервиса
 - **FILMS** — фильмы
@@ -30,6 +30,10 @@ Template repository for Filmorate project.
 - **FRIENDS** — дружба между пользователями
 - **LIKES** — лайки пользователей к фильмам
 - **MPA** — рейтинги MPA
+- **reviews** — для хранения отзывов
+- **review_likes** — для хранения лайков отзывов
+- **review_dislikes** — для хранения дизлайков отзывов
+
 
 ## ER-диаграмма
 ![Database Schema](schema.png)
