@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
@@ -22,7 +23,7 @@ public class UserService {
     private final EventService eventService;
 
     @Autowired
-    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, EventService eventService) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, @Lazy EventService eventService) {
         this.userStorage = userStorage;
         this.eventService = eventService;
     }
@@ -33,6 +34,9 @@ public class UserService {
 
 
     public User create(User user) {
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
         return userStorage.create(user);
     }
 
@@ -64,6 +68,13 @@ public class UserService {
     public void removeFriend(Long userId, Long friendId) {
         getUserOrThrow(userId);
         getUserOrThrow(friendId);
+
+        if (!userStorage.isFriend(userId, friendId)) {
+            throw new NotFoundException(
+                    String.format("Пользователь id=%d не в друзьях у пользователя id=%d.", friendId, userId)
+            );
+        }
+
         userStorage.removeFriend(userId, friendId);
 
         Event event = Event.builder()

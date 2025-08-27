@@ -189,7 +189,10 @@ public class ReviewDbStorage implements ReviewStorage {
     @Override
     public void removeLike(Long reviewId, Long userId) {
         String sql = "DELETE FROM review_likes WHERE review_id = ? AND user_id = ?";
-        jdbcTemplate.update(sql, reviewId, userId);
+        int rowsAffected = jdbcTemplate.update(sql, reviewId, userId);
+        if (rowsAffected == 0) {
+            //throw new NotFoundException("Лайк для отзыва не найден");
+        }
     }
 
     /**

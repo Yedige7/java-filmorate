@@ -154,4 +154,14 @@ public class InMemoryFilmStorage implements FilmStorage {
 
         return filmsByDirector;
     }
+
+    @Override
+    public boolean hasLike(Long filmId, Long userId) {
+        // Простая реализация для InMemory-хранилища
+        Film film = films.get(filmId);
+        if (film == null) {
+            return false;
+        }
+        return film.getLikes().contains(userId);
+    }
 }

@@ -100,4 +100,13 @@ public class InMemoryUserStorage implements UserStorage {
     public Collection<Film> getRecommendations(Long id) {
         return List.of();
     }
+
+    @Override
+    public boolean isFriend(Long userId, Long friendId) {
+        User user = users.get(userId);
+        if (user == null) {
+            return false;
+        }
+        return user.getFriends().contains(friendId);
+    }
 }

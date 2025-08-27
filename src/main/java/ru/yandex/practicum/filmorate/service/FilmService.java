@@ -24,8 +24,7 @@ public class FilmService {
     private final DirectorService directorService;
 
     @Autowired
-    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage,
-                       UserService userService,
+    public FilmService(@Qualifier("filmDbStorage") FilmStorage filmStorage, UserService userService,
                        EventService eventService,
                        DirectorService directorService) {
         this.filmStorage = filmStorage;
@@ -64,6 +63,13 @@ public class FilmService {
     public void removeLike(Long filmId, Long userId) {
         getFilmOrThrow(filmId);
         userService.getUserOrThrow(userId);
+
+        if (!filmStorage.hasLike(filmId, userId)) {
+            throw new NotFoundException(
+                    String.format("Лайк от пользователя id=%d для фильма id=%d не найден.", userId, filmId)
+            );
+        }
+
         filmStorage.removeLike(filmId, userId);
 
         Event event = Event.builder()

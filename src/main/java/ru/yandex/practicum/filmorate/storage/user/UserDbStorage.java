@@ -20,6 +20,7 @@ import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Repository("userDbStorage")
@@ -157,7 +158,8 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void removeFriend(Long userId, Long friendId) {
-        jdbcTemplate.update(DELETE_FRIEND_QUERY, userId, friendId);
+        String sql = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
+        jdbcTemplate.update(sql, userId, friendId);
     }
 
     @Override
@@ -177,51 +179,51 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public Collection<Film> getRecommendations(Long id) {
-        try {
-            if (!likesExists(id)) {
-                return Collections.emptyList();
-            }
+        String findMostSimilarUserSql = "" +
+                "SELECT l2.user_id " +
+                "FROM likes AS l1 " +
+                "JOIN likes AS l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " +
+                "WHERE l1.user_id = ? " +
+                "GROUP BY l2.user_id " +
+                "ORDER BY COUNT(l2.film_id) DESC " +
+                "LIMIT 1";
 
-            Long topNeighborId;
-            try {
-                topNeighborId = jdbcTemplate.queryForObject(
-                        FIND_TOP_NEIGHBOR, new Object[]{id, id}, Long.class
-                );
-            } catch (org.springframework.dao.EmptyResultDataAccessException e) {
-                return Collections.emptyList();
-            }
+        List<Long> similarUserIds = jdbcTemplate.queryForList(findMostSimilarUserSql, Long.class, id);
 
-            if (topNeighborId == null) {
-                return Collections.emptyList();
-            }
-
-            List<Long> candidateIds = jdbcTemplate.queryForList(
-                    FIND_CANDIDATE_FILM_IDS, Long.class, topNeighborId, id
-            );
-            if (candidateIds.isEmpty()) {
-                return Collections.emptyList();
-            }
-
-            List<Film> recs = new ArrayList<>(candidateIds.size());
-            for (Long filmId : candidateIds) {
-                try {
-                    Optional<Film> maybe = filmStorage.findById(filmId);
-                    maybe.ifPresent(recs::add);
-                } catch (Exception ex) {
-                    log.warn("Рекомендация: filmId={} findById кинул {} — пропускаю", filmId, ex.getClass().getSimpleName());
-                }
-            }
-            return recs;
-
-        } catch (org.springframework.dao.DataAccessException e) {
-            log.error("DB error in getRecommendations(userId={}): {}", id, e.getMessage(), e);
-            throw new RuntimeException("Ошибка при поиске рекомендаций фильмов", e);
+        if (similarUserIds.isEmpty()) {
+            return Collections.emptyList();
         }
+
+        Long similarUserId = similarUserIds.get(0);
+
+        String recommendFilmsSql = "" +
+                "SELECT film_id FROM likes WHERE user_id = ? " +
+                "EXCEPT " +
+                "SELECT film_id FROM likes WHERE user_id = ?";
+
+        List<Long> recommendedFilmIds = jdbcTemplate.queryForList(recommendFilmsSql, Long.class, similarUserId, id);
+
+        if (recommendedFilmIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return recommendedFilmIds.stream()
+                .map(filmId -> filmStorage.findById(filmId))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     @Override
     public void deleteById(Long userId) {
         String sql = "DELETE FROM users WHERE user_id = ?";
         jdbcTemplate.update(sql, userId);
+    }
+
+    @Override
+    public boolean isFriend(Long userId, Long friendId) {
+        String sql = "SELECT COUNT(*) FROM friends WHERE user_id = ? AND friend_id = ?";
+        Integer count = jdbcTemplate.queryForObject(sql, Integer.class, userId, friendId);
+        return count != null && count > 0;
     }
 }
