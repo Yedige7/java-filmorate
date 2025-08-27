@@ -28,4 +28,6 @@ public interface UserStorage {
     void deleteById(Long userId);
 
     Collection<Film> getRecommendations(Long id);
+
+    boolean isFriend(Long userId, Long friendId);
 }
