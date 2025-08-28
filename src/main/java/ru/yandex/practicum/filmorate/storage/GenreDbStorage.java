@@ -16,46 +16,29 @@ public class GenreDbStorage {
 
     private static final String FIND_ALL_QUERY = "SELECT * FROM genres ORDER BY genre_id";
     private static final String FIND_BY_GENRE_QUERY = "SELECT * FROM genres WHERE genre_id = ?";
+    private static final String FIND_GENRE_BY_ID = """
+                 SELECT g.genre_id, g.name
+                 FROM genres g
+                 JOIN film_genres fg ON g.genre_id = fg.genre_id
+                 WHERE fg.film_id = ?
+                 ORDER BY g.genre_id
+            """;
     private final JdbcTemplate jdbcTemplate;
 
     public List<Genre> findAll() {
-        return jdbcTemplate.query(FIND_ALL_QUERY, (rs, rowNum) ->
-                new Genre(rs.getLong("genre_id"), rs.getString("name"))
-        );
+        return jdbcTemplate.query(FIND_ALL_QUERY, (rs, rowNum) -> new Genre(rs.getLong("genre_id"), rs.getString("name")));
     }
 
     public Optional<Genre> findById(long id) {
-        List<Genre> list = jdbcTemplate.query(FIND_BY_GENRE_QUERY, (rs, rowNum) ->
-                new Genre(rs.getLong("genre_id"), rs.getString("name")), id
-        );
+        List<Genre> list = jdbcTemplate.query(FIND_BY_GENRE_QUERY, (rs, rowNum) -> new Genre(rs.getLong("genre_id"), rs.getString("name")), id);
         return list.isEmpty() ? Optional.empty() : Optional.ofNullable(list.getFirst());
     }
 
-    /**
-     * Получает все жанры для указанного фильма
-     *
-     * @param filmId идентификатор фильма
-     * @return список жанров, связанных с фильмом
-     */
     public List<Genre> getGenresByFilmId(long filmId) {
-        String sql = """
-                    SELECT g.genre_id, g.name\s
-                    FROM genres g
-                    JOIN film_genres fg ON g.genre_id = fg.genre_id
-                    WHERE fg.film_id = ?
-                    ORDER BY g.genre_id
-               \s""";
-
-        return jdbcTemplate.query(sql, this::mapRowToGenre, filmId);
+        return jdbcTemplate.query(FIND_GENRE_BY_ID, this::mapRowToGenre, filmId);
     }
 
-    /**
-     * Маппит строку результата в объект Genre
-     */
     private Genre mapRowToGenre(ResultSet rs, int rowNum) throws SQLException {
-        return new Genre(
-                rs.getLong("genre_id"),
-                rs.getString("name")
-        );
+        return new Genre(rs.getLong("genre_id"), rs.getString("name"));
     }
 }

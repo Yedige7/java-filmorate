@@ -22,9 +22,6 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * Film.
- */
 @Data
 @JsonIgnoreProperties(value = {"rate"})
 @EqualsAndHashCode(of = {"name"})

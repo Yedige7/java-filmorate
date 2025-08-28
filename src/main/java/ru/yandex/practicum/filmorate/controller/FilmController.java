@@ -1,15 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.springframework.http.HttpStatus;
 import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.service.FilmService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,16 +53,6 @@ public class FilmController {
         filmService.removeLike(id, userId);
     }
 
-
-    /**
-     * GET /films/popular
-     * Возвращает список самых популярных фильмов с возможностью фильтрации по жанру и году
-     *
-     * @param count   количество возвращаемых фильмов (по умолчанию 10, min=1, max=2000)
-     * @param genreId идентификатор жанра для фильтрации (опционально)
-     * @param year    год выпуска для фильтрации (опционально, min=1895, max=2100)
-     * @return список фильмов, отсортированный по убыванию количества лайков
-     */
     @GetMapping("/popular")
     public List<Film> getPopularFilms(
             @RequestParam(defaultValue = "10") @Min(1) @Max(2000) int count,
@@ -79,14 +69,6 @@ public class FilmController {
         return filmService.getFilmOrThrow(id);
     }
 
-    /**
-     * Обрабатывает GET-запрос для получения списка общих с другом фильмов.
-     * Эндпоинт: GET /films/common?userId={userId}&friendId={friendId}
-     *
-     * @param userId   идентификатор пользователя, переданный в параметрах запроса
-     * @param friendId идентификатор друга, переданный в параметрах запроса
-     * @return список общих фильмов, отсортированный по популярности (количеству лайков)
-     */
     @GetMapping("/common")
     public List<Film> getCommonFilms(@RequestParam long userId,
                                      @RequestParam long friendId) {
@@ -107,19 +89,8 @@ public class FilmController {
     public List<Film> searchFilms(
             @RequestParam String query,
             @RequestParam(defaultValue = "title") String by) {
-
         List<String> searchBy = Arrays.asList(by.split(","));
-        validateSearchParameters(searchBy);
-
         return filmService.searchFilms(query, searchBy);
-    }
-
-    private void validateSearchParameters(List<String> searchBy) {
-        for (String param : searchBy) {
-            if (!param.equals("title") && !param.equals("director")) {
-                throw new IllegalArgumentException("Parameter 'by' can only contain 'title' and/or 'director'");
-            }
-        }
     }
 
 

@@ -39,6 +39,12 @@ public class FilmWithDetailsMapper implements RowMapper<Film> {
             String[] ids = genreIdsStr.split(",");
             String[] names = genreNamesStr.split(",");
 
+            if (ids.length != names.length) {
+                throw new IllegalArgumentException(
+                        "Несовпадение количества id и имён жанров: ids=" + ids.length + ", names=" + names.length
+                );
+            }
+
             for (int i = 0; i < ids.length; i++) {
                 if (!ids[i].trim().isEmpty()) {
                     Genre genre = new Genre();
@@ -57,6 +63,13 @@ public class FilmWithDetailsMapper implements RowMapper<Film> {
         if (directorIdsStr != null && directorNamesStr != null && !directorIdsStr.isEmpty()) {
             String[] ids = directorIdsStr.split(",");
             String[] names = directorNamesStr.split(",");
+
+            if (ids.length != names.length) {
+                throw new IllegalArgumentException(
+                        "Несовпадение количества id и имён режиссёров: ids=" + ids.length + ", names=" + names.length
+                );
+            }
+
             for (int i = 0; i < Math.min(ids.length, names.length); i++) {
                 if (!ids[i].trim().isEmpty()) {
                     Director director = new Director();

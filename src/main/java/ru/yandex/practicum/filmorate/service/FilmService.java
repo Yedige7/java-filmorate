@@ -7,10 +7,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.model.event.Event;
 import ru.yandex.practicum.filmorate.model.event.EventType;
 import ru.yandex.practicum.filmorate.model.event.Operation;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
 import java.util.Collection;
 import java.util.List;
@@ -84,18 +84,6 @@ public class FilmService {
 
     public List<Film> getPopularFilms(int count, Long genreId, Integer year) {
         log.debug("Получение популярных фильмов: count={}, genreId={}, year={}", count, genreId, year);
-
-        // Валидация параметров
-        if (count <= 0) {
-            throw new ValidationException("Count должен быть положительным числом");
-        }
-        if (genreId != null && genreId <= 0) {
-            throw new ValidationException("GenreId должен быть положительным числом");
-        }
-        if (year != null && (year < 1895 || year > 2100)) {
-            throw new ValidationException("Year должен быть в диапазоне 1895-2100");
-        }
-
         return filmStorage.getPopularFilms(count, genreId, year);
     }
 
@@ -103,28 +91,16 @@ public class FilmService {
         return filmStorage.findById(id).orElseThrow(() -> new NotFoundException("Фильм c " + id + " не найден"));
     }
 
-    /**
-     * Возвращает список общих с другом фильмов с сортировкой по их популярности.
-     * Проверяет валидность идентификаторов пользователей перед выполнением запроса к БД.
-     *
-     * @param userId   идентификатор пользователя, запрашивающего информацию
-     * @param friendId идентификатор пользователя, с которым происходит сравнение
-     * @return список общих фильмов (объектов Film), отсортированный по популярности
-     * @throws ValidationException если идентификаторы пользователей совпадают
-     */
     public List<Film> getCommonFilms(long userId, long friendId) {
-        // Проверка: не совпадают ли идентификаторы пользователей
         if (userId == friendId) {
             log.warn("Запрос общих фильмов для одинаковых ID пользователей: {}", userId);
             throw new ValidationException("Идентификаторы пользователя и друга не должны совпадать.");
         }
 
-        // Проверка: существуют ли оба пользователя в базе данных.
         userService.getUserOrThrow(userId);
         userService.getUserOrThrow(friendId);
 
         log.info("Поиск общих фильмов для пользователей с ID: {} и {}", userId, friendId);
-        // Делегируем выполнение основного запроса слою хранилища
         List<Film> commonFilms = filmStorage.getCommonFilms(userId, friendId);
         log.info("Найдено {} общих фильмов для пользователей с ID: {} и {}", commonFilms.size(), userId, friendId);
 
@@ -143,10 +119,19 @@ public class FilmService {
     }
 
     public List<Film> searchFilms(String query, List<String> searchBy) {
+        validateSearchParameters(searchBy);
         if (query == null || query.trim().isEmpty()) {
             throw new IllegalArgumentException("Search query cannot be empty");
         }
 
         return filmStorage.searchFilms(query.trim(), searchBy);
+    }
+
+    private void validateSearchParameters(List<String> searchBy) {
+        for (String param : searchBy) {
+            if (!param.equals("title") && !param.equals("director")) {
+                throw new IllegalArgumentException("Parameter 'by' can only contain 'title' and/or 'director'");
+            }
+        }
     }
 }

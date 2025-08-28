@@ -11,15 +11,15 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 public class EventDbStorage implements EventStorage {
-
+    private static final String SELECT_QUERY_BY_ID = "SELECT * FROM events WHERE user_id = ? ORDER BY ts";
+    private static final String INSERT_QUERY = "INSERT INTO events (ts, user_id, event_type, operation, entity_id) " +
+            "VALUES (?, ?, ?, ?, ?)";
     private final JdbcTemplate jdbcTemplate;
     private final EventMapper eventMapper;
 
     @Override
     public void addEvent(Event event) {
-        String sql = "INSERT INTO events (ts, user_id, event_type, operation, entity_id) " +
-                "VALUES (?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql,
+        jdbcTemplate.update(INSERT_QUERY,
                 event.getTimestamp(),
                 event.getUserId(),
                 event.getEventType().toString(),
@@ -29,7 +29,6 @@ public class EventDbStorage implements EventStorage {
 
     @Override
     public List<Event> getFeedForUser(Long userId) {
-        String sql = "SELECT * FROM events WHERE user_id = ? ORDER BY ts";
-        return jdbcTemplate.query(sql, eventMapper, userId);
+        return jdbcTemplate.query(SELECT_QUERY_BY_ID, eventMapper, userId);
     }
 }
