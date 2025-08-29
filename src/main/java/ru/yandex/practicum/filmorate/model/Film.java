@@ -22,15 +22,12 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * Film.
- */
 @Data
 @JsonIgnoreProperties(value = {"rate"})
 @EqualsAndHashCode(of = {"name"})
 @AllArgsConstructor
 @NoArgsConstructor
-public class Film {
+public class  Film {
 
     private Long id;
 
@@ -60,5 +57,7 @@ public class Film {
     public int getRate() {
         return likes != null ? likes.size() : 0;
     }
+
+    private Set<Director> directors = new LinkedHashSet<>();
 
 }

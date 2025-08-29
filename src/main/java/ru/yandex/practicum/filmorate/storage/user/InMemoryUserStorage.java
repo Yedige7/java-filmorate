@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exception.ConditionsNotMetException;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.*;
@@ -67,6 +68,15 @@ public class InMemoryUserStorage implements UserStorage {
     }
 
     @Override
+    public void deleteById(Long userId) {
+        if (users.remove(userId) != null) {
+            log.info("Пользователь с id={} удален из InMemory хранилища", userId);
+        } else {
+            log.warn("Попытка удалить несуществующего пользователя с id={} из InMemory хранилища", userId);
+        }
+    }
+
+    @Override
     public void addFriend(Long userId, Long friendId) {
 
     }
@@ -84,5 +94,19 @@ public class InMemoryUserStorage implements UserStorage {
     @Override
     public List<User> getCommonFriends(Long userId, Long otherId) {
         return null;
+    }
+
+    @Override
+    public Collection<Film> getRecommendations(Long id) {
+        return List.of();
+    }
+
+    @Override
+    public boolean isFriend(Long userId, Long friendId) {
+        User user = users.get(userId);
+        if (user == null) {
+            return false;
+        }
+        return user.getFriends().contains(friendId);
     }
 }

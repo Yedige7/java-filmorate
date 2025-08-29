@@ -35,7 +35,7 @@ class FilmControllerTest {
 
     @Test
     void createFilmIntegrationTest() throws Exception {
-        Film film = new Film(null, "С легким паром", "Советский фильм", Duration.ofMinutes(120), LocalDate.of(1990, 7, 16), new HashSet<>(),  new Mpa(1L, null), new HashSet<>());
+        Film film = new Film(null, "С легким паром", "Советский фильм", Duration.ofMinutes(120), LocalDate.of(1990, 7, 16), new HashSet<>(),  new Mpa(1L, null), new HashSet<>(), new HashSet<>());
 
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -56,6 +56,7 @@ class FilmControllerTest {
                 LocalDate.of(2000, 1, 1),
                 new HashSet<>(),
                 new Mpa(1L, null),
+                new HashSet<>(),
                 new HashSet<>()
         );
 
@@ -76,6 +77,7 @@ class FilmControllerTest {
                 LocalDate.of(2000, 1, 1),
                 new HashSet<>(),
                 new Mpa(1L, null),
+                new HashSet<>(),
                 new HashSet<>()
         );
 
@@ -96,6 +98,7 @@ class FilmControllerTest {
                 LocalDate.of(2020, 1, 1),
                 new HashSet<>(),
                 new Mpa(1L, null),
+                new HashSet<>(),
                 new HashSet<>()
         );
 
@@ -109,8 +112,10 @@ class FilmControllerTest {
 
     @Test
     void shouldReturnAllFilms() throws Exception {
-        Film film1 = new Film(null, "Крик", "Крик ужастик", Duration.ofMinutes(90), LocalDate.of(2001, 1, 1), new HashSet<>(),new Mpa(1L, null),  new HashSet<>());
-        Film film2 = new Film(null, "Крик2", "Крик ужастик 2 часть", Duration.ofMinutes(100), LocalDate.of(2002, 2, 2), new HashSet<>(), new Mpa(1L, null),  new HashSet<>());
+        Film film1 = new Film(null, "Крик", "Крик ужастик", Duration.ofMinutes(90), LocalDate.of(2001, 1, 1), new HashSet<>(),new Mpa(1L, null),  new HashSet<>(),
+                new HashSet<>());
+        Film film2 = new Film(null, "Крик2", "Крик ужастик 2 часть", Duration.ofMinutes(100), LocalDate.of(2002, 2, 2), new HashSet<>(), new Mpa(1L, null),  new HashSet<>(),
+                new HashSet<>());
 
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +134,8 @@ class FilmControllerTest {
 
     @Test
     void testFilmLikesAndPopularity() throws Exception {
-        Film film1 = new Film(null, "Крик", "Крик ужастик", Duration.ofMinutes(90), LocalDate.of(2001, 1, 1), new HashSet<>(), new Mpa(1L, null),  new HashSet<>());
+        Film film1 = new Film(null, "Крик", "Крик ужастик", Duration.ofMinutes(90), LocalDate.of(2001, 1, 1), new HashSet<>(), new Mpa(1L, null),  new HashSet<>(),
+                new HashSet<>());
         User u1 = new User(null, "user1@example.com", "login1", "User1", LocalDate.of(1990, 1, 1), new HashSet<>());
 
         mockMvc.perform(post("/films")
@@ -157,6 +163,6 @@ class FilmControllerTest {
 
         mockMvc.perform(get("/films/popular?count=5"))
                 .andExpect(status().isOk())
-                .andExpect(content().json("[{\"id\":1,\"name\":\"Крик\",\"description\":\"Крик ужастик\",\"releaseDate\":\"2001-01-01\",\"duration\":90,\"likes\":[]}]"));
+                .andExpect(content().json("[{\"id\":1,\"name\":\"Крик\",\"description\":\"Крик ужастик\",\"releaseDate\":\"2001-01-01\",\"duration\":90,\"likes\":[],\"directors\":[]}]"));
     }
 }

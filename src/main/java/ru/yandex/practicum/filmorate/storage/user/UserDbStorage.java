@@ -2,6 +2,9 @@ package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -9,12 +12,15 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.DuplicatedDataException;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.mapper.UserMapper;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 
-import java.sql.Date;
 import java.sql.*;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Repository("userDbStorage")
@@ -29,14 +35,21 @@ public class UserDbStorage implements UserStorage {
     private static final String FIND_FRIEND_BY_USER_ID_QUERY = "SELECT friend_id FROM friends WHERE user_id = ?";
     private static final String INSERT_FRIEND_QUERY = "INSERT INTO friends (user_id, friend_id) VALUES (?, ?)";
     private static final String DELETE_FRIEND_QUERY = "DELETE FROM friends WHERE user_id = ? AND friend_id = ?";
-    private static final String FIND_FRIEND_QUERY = "SELECT u.* FROM users u JOIN friends f ON u.USER_ID = f.friend_id " +
-            "WHERE f.user_id = ?";
-    private static final String FIND_COMMON_FRIEND_QUERY = "SELECT u.* FROM users u " +
-            "JOIN friends f1 ON  f1.friend_id = u.user_id " +
-            "JOIN friends f2 ON f2.friend_id = u.user_id " +
-            "WHERE f1.user_id = ? AND " +
-            "f2.user_id = ?";
+    private static final String FIND_FRIEND_QUERY = "SELECT u.* FROM users u JOIN friends f ON u.USER_ID = f.friend_id " + "WHERE f.user_id = ?";
+    private static final String FIND_COMMON_FRIEND_QUERY = "SELECT u.* FROM users u " + "JOIN friends f1 ON  f1.friend_id = u.user_id " + "JOIN friends f2 ON f2.friend_id = u.user_id " + "WHERE f1.user_id = ? AND " + "f2.user_id = ?";
+    private static final String FIND_LIKES_QUERY = "SELECT film_id FROM likes WHERE user_id = ? " + "EXCEPT " + "SELECT film_id FROM likes WHERE user_id = ?";
+    private static final String FIND_MOST_QUERY = "SELECT l2.user_id " + "FROM likes AS l1 " + "JOIN likes AS l2 ON l1.film_id = l2.film_id AND l1.user_id != l2.user_id " + "WHERE l1.user_id = ? " + "GROUP BY l2.user_id " + "ORDER BY COUNT(l2.film_id) DESC " + "LIMIT 1";
+    private static final String FIND_COUNT_LIKES = "SELECT COUNT(*) FROM likes WHERE user_id = ?";
+    private static final String FIND_COUNT_FRIENDS = "SELECT COUNT(*) FROM friends WHERE user_id = ? AND friend_id = ?";
+    private static final String DELETE_USERS_BY_ID = "DELETE FROM users WHERE user_id = ?";
     private final JdbcTemplate jdbcTemplate;
+    private FilmStorage filmStorage;
+
+    @Autowired
+    public UserDbStorage(@Qualifier("filmDbStorage") FilmStorage filmStorage, JdbcTemplate jdbcTemplate) {
+        this.filmStorage = filmStorage;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Override
     public Collection<User> findAll() {
@@ -44,7 +57,6 @@ public class UserDbStorage implements UserStorage {
     }
 
     public boolean emailExists(String email) {
-
         Integer count = jdbcTemplate.queryForObject(FIND_BY_EMAIL_QUERY, Integer.class, email);
         return count != null && count > 0;
     }
@@ -74,15 +86,7 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public User update(User newUser) {
-        int rows = jdbcTemplate.update(
-                UPDATE_QUERY,
-                newUser.getEmail(),
-                newUser.getLogin(),
-                newUser.getName(),
-                newUser.getBirthday() != null ? Date.valueOf(newUser.getBirthday()) : null,
-                newUser.getId()
-        );
-
+        int rows = jdbcTemplate.update(UPDATE_QUERY, newUser.getEmail(), newUser.getLogin(), newUser.getName(), newUser.getBirthday() != null ? Date.valueOf(newUser.getBirthday()) : null, newUser.getId());
         if (rows == 0) {
             throw new NotFoundException("Пользователь с id=" + newUser.getId() + " не найден");
         }
@@ -93,11 +97,9 @@ public class UserDbStorage implements UserStorage {
     @Override
     public Optional<User> findById(Long id) {
         try {
-            User user = jdbcTemplate.queryForObject(
-                    FIND_BY_USER_ID_QUERY, new UserMapper(), id
-            );
-            return Optional.of(user);
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+            User user = jdbcTemplate.queryForObject(FIND_BY_USER_ID_QUERY, new UserMapper(), id);
+            return Optional.ofNullable(user);
+        } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
@@ -105,14 +107,7 @@ public class UserDbStorage implements UserStorage {
     private User makeUser(ResultSet rs) throws SQLException {
         Date date = rs.getDate("birthday");
         LocalDate birthday = (date != null) ? date.toLocalDate() : null;
-        return new User(
-                rs.getLong("user_id"),
-                rs.getString("email"),
-                rs.getString("login"),
-                rs.getString("name"),
-                birthday,
-                findFriendList(rs.getLong("user_id"))
-        );
+        return new User(rs.getLong("user_id"), rs.getString("email"), rs.getString("login"), rs.getString("name"), birthday, findFriendList(rs.getLong("user_id")));
     }
 
     private Set<Long> findFriendList(Long id) {
@@ -137,5 +132,37 @@ public class UserDbStorage implements UserStorage {
     @Override
     public List<User> getCommonFriends(Long userId, Long otherId) {
         return jdbcTemplate.query(FIND_COMMON_FRIEND_QUERY, new UserMapper(), userId, otherId);
+    }
+
+    public boolean likesExists(Long userId) {
+        Integer existCounter = jdbcTemplate.queryForObject(FIND_COUNT_LIKES, Integer.class, userId);
+        return existCounter != null && existCounter > 0;
+    }
+
+    @Override
+    public Collection<Film> getRecommendations(Long id) {
+        List<Long> similarUserIds = jdbcTemplate.queryForList(FIND_MOST_QUERY, Long.class, id);
+        if (similarUserIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Long similarUserId = similarUserIds.get(0);
+        List<Long> recommendedFilmIds = jdbcTemplate.queryForList(FIND_LIKES_QUERY, Long.class, similarUserId, id);
+        if (recommendedFilmIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return recommendedFilmIds.stream().map(filmId -> filmStorage.findById(filmId)).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+    }
+
+    @Override
+    public void deleteById(Long userId) {
+        jdbcTemplate.update(DELETE_USERS_BY_ID, userId);
+    }
+
+    @Override
+    public boolean isFriend(Long userId, Long friendId) {
+        Integer count = jdbcTemplate.queryForObject(FIND_COUNT_FRIENDS, Integer.class, userId, friendId);
+        return count != null && count > 0;
     }
 }
